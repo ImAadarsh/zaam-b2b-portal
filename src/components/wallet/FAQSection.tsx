@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
+import { HelpCircle, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
 
 const faqs = [
   {
@@ -10,7 +11,7 @@ const faqs = [
   },
   {
     question: 'How do I qualify for a higher credit limit (e.g. £25,000+)?',
-    answer: 'Credit limit increases are reviewed automatically every 90 days based on on-time settlement history. You can also request an immediate manual review by contacting your designated Account Manager (Hamza Malik) with your recent management accounts.'
+    answer: 'Credit limit increases are reviewed automatically every 90 days based on on-time settlement history. You can also request an immediate manual review via Support or your Account Manager with your recent management accounts.'
   },
   {
     question: 'Can I split checkout payments between Wallet Credit and Bank Card?',
@@ -66,6 +67,14 @@ export const FAQSection: React.FC = () => {
           );
         })}
       </div>
+
+      <Link
+        href="/account/support"
+        className="flex items-center justify-center gap-2 w-full text-xs font-bold text-zaam-green-700 bg-zaam-green-50 hover:bg-zaam-green-100 border border-zaam-green-200 py-2.5 rounded-xl transition-colors"
+      >
+        <Headphones className="w-4 h-4" />
+        Contact support
+      </Link>
     </div>
   );
 };

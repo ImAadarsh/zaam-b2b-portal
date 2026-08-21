@@ -1,4 +1,4 @@
-import { Product, Category, Order, RetailerProfile, NotificationItem } from '@/types';
+import { Product, Category, Order, RetailerProfile, NotificationItem, SupportTicket, SupportTicketMessage, SupportTicketCategory, SupportTicketPriority } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_ZAAM_API_URL || 'http://localhost:4000/api/b2b';
 
@@ -322,6 +322,38 @@ export const zaamApi = {
     const json = await request<{ data: any }>('/referrals/invite', {
       method: 'POST',
       body: JSON.stringify(payload)
+    });
+    return json.data;
+  },
+
+  async getSupportTickets(): Promise<SupportTicket[]> {
+    const json = await request<{ data: SupportTicket[] }>('/support/tickets');
+    return json.data || [];
+  },
+
+  async getSupportTicket(id: string): Promise<SupportTicket> {
+    const json = await request<{ data: SupportTicket }>(`/support/tickets/${id}`);
+    return json.data;
+  },
+
+  async createSupportTicket(payload: {
+    subject: string;
+    description: string;
+    category?: SupportTicketCategory;
+    priority?: SupportTicketPriority;
+    orderId?: string;
+  }): Promise<SupportTicket> {
+    const json = await request<{ data: SupportTicket }>('/support/tickets', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    return json.data;
+  },
+
+  async replySupportTicket(id: string, message: string): Promise<SupportTicketMessage> {
+    const json = await request<{ data: SupportTicketMessage }>(`/support/tickets/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message })
     });
     return json.data;
   }

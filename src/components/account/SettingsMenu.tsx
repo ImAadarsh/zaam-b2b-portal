@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Building2, MapPin, FileCheck2, BellRing, Lock, Users, Download, ChevronRight, LogOut, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Building2, MapPin, FileCheck2, BellRing, Lock, Users, Download, ChevronRight, LogOut, X, Headphones } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { zaamApi } from '@/lib/api';
@@ -9,6 +10,7 @@ import { zaamApi } from '@/lib/api';
 type Panel = 'profile' | 'branches' | 'buyers' | 'notifications' | 'password' | null;
 
 export const SettingsMenu: React.FC = () => {
+  const router = useRouter();
   const { retailer, logout, refreshProfile } = useAuth();
   const { showToast } = useNotifications();
   const [panel, setPanel] = useState<Panel>(null);
@@ -52,6 +54,17 @@ export const SettingsMenu: React.FC = () => {
         { icon: Building2, label: 'Company Profile & VAT Details', desc: `${retailer.companyName} • VAT: ${retailer.vatNumber || '—'}`, action: () => open('profile') },
         { icon: MapPin, label: 'Registered Delivery Branches', desc: 'Manage shipping addresses', action: () => open('branches') },
         { icon: Users, label: 'Authorized Store Staff & Buyers', desc: 'Manage buyers and spending caps', action: () => open('buyers') }
+      ]
+    },
+    {
+      title: 'Help & Support',
+      items: [
+        {
+          icon: Headphones,
+          label: 'Support tickets',
+          desc: 'Raise and track account support requests',
+          action: () => router.push('/account/support')
+        }
       ]
     },
     {

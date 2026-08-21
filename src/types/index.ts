@@ -142,3 +142,47 @@ export interface PaymentAttemptLog {
   errorMessage?: string;
   durationMs: number;
 }
+
+export type SupportTicketCategory =
+  | 'order_inquiry'
+  | 'return'
+  | 'complaint'
+  | 'technical'
+  | 'billing'
+  | 'general'
+  | 'other';
+
+export type SupportTicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type SupportTicketStatus =
+  | 'new'
+  | 'open'
+  | 'pending_customer'
+  | 'pending_internal'
+  | 'resolved'
+  | 'closed'
+  | 'cancelled';
+
+export interface SupportTicketMessage {
+  id: string;
+  senderType: 'customer' | 'agent' | 'system';
+  senderName: string | null;
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  description: string | null;
+  category: SupportTicketCategory;
+  priority: SupportTicketPriority;
+  status: SupportTicketStatus;
+  channel: string;
+  orderId: string | null;
+  orderNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+  messages?: SupportTicketMessage[];
+}
