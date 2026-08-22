@@ -90,8 +90,27 @@ export const RecentOrdersList: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center justify-between pt-1">
-              <div className="text-[11px] text-neutral-500">
-                Paid via: <strong className="text-neutral-700">{order.paymentMethod}</strong>
+              <div className="text-[11px] text-neutral-500 space-y-0.5">
+                <div>
+                  Paid via: <strong className="text-neutral-700">{order.paymentMethod}</strong>
+                </div>
+                {order.trackingNumber && (
+                  <div>
+                    Tracking:{' '}
+                    {/^[\dA-Z]{8,}$/i.test(order.trackingNumber) ? (
+                      <a
+                        href={`https://www.dhl.com/gb-en/home/tracking.html?tracking-id=${encodeURIComponent(order.trackingNumber)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-zaam-green-700 underline"
+                      >
+                        {order.trackingNumber}
+                      </a>
+                    ) : (
+                      <strong className="text-neutral-700">{order.trackingNumber}</strong>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => handleReorder(order)}
