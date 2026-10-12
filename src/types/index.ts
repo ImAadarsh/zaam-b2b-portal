@@ -112,6 +112,59 @@ export interface Order {
   vatAmount: number;
   total: number;
   trackingNumber?: string;
+  orderDate?: string;
+  paymentStatus?: string;
+  branch?: string | null;
+  fulfillmentStatus?: string;
+}
+
+export type OrderStatusFilter = 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
+
+export interface OrderListParams {
+  page: number;
+  pageSize: number;
+  sort: 'date' | 'total' | 'status';
+  dir: 'asc' | 'desc';
+  search?: string;
+  status?: OrderStatusFilter | '';
+  dateFrom?: string;
+  dateTo?: string;
+  branchId?: string;
+}
+
+export interface OrderListResult {
+  data: Order[];
+  meta: { total: number; page: number; pageSize: number };
+}
+
+export interface OrderDetail extends Order {
+  currency: string;
+  discountAmount: number;
+  shippingAmount: number;
+  deliveryAddress: {
+    name: string | null;
+    company: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    postalCode: string;
+    countryCode: string;
+    phone: string | null;
+  } | null;
+  shipment?: { id: string; status: string; carrier: string | null; trackingNumber: string | null };
+  timeline: { status: string; label: string; at: string }[];
+  invoice: { invoiceNumber: string; status: string; invoiceDate: string; documentUrl: string | null } | null;
+}
+
+export interface Branch {
+  id: string;
+  addressType: 'shipping' | 'billing' | 'both';
+  company: string | null;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  postalCode: string;
+  isDefault: boolean;
 }
 
 export interface NotificationItem {

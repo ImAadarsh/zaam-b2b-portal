@@ -2,16 +2,19 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Bell, Building2, ChevronDown, Sparkles, LogOut } from 'lucide-react';
+import { ShoppingBag, Bell, Building2, ChevronDown, Sparkles, LogOut, Check, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { BrandLogo } from '@/components/ui/BrandLogo';
+import { Branch } from '@/types';
+
+const branchLabel = (b: Branch) => [b.addressLine1, b.city].filter(Boolean).join(', ');
 
 export const AppHeader: React.FC = () => {
   const { totalCases, setIsCartDrawerOpen } = useCart();
-  const { retailer, selectedBranch, setSelectedBranch, branches, logout } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { retailer, branches, selectedBranch, selectedBranchId, setSelectedBranchId, logout } = useAuth();
+  const { unreadCount, showToast } = useNotifications();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-soft-sm">
@@ -35,27 +38,60 @@ export const AppHeader: React.FC = () => {
           {/* Center Branch Selector (Desktop & Tablet) */}
           <div className="hidden md:flex items-center">
             <div className="relative group">
-              <div className="flex items-center space-x-2 bg-neutral-100/90 hover:bg-neutral-200/70 transition-colors px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 cursor-pointer border border-neutral-200">
+              <button
+                type="button"
+                className="flex items-center space-x-2 bg-neutral-100/90 hover:bg-neutral-200/70 transition-colors px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 cursor-pointer border border-neutral-200"
+              >
                 <Building2 className="w-3.5 h-3.5 text-zaam-green-600" />
-                <span className="max-w-[200px] truncate">{selectedBranch}</span>
+                <span className="max-w-[200px] truncate">{selectedBranch ? branchLabel(selectedBranch) : 'No delivery branch'}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-              </div>
-              
-              <div className="absolute left-0 mt-1 w-64 bg-white rounded-xl shadow-soft-lg border border-neutral-100 py-1 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                <div className="px-3 py-1.5 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-100">
-                  Switch Active Branch
-                </div>
-                {branches.map(branch => (
-                  <button
-                    key={branch}
-                    onClick={() => setSelectedBranch(branch)}
-                    className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-zaam-green-50 ${
-                      selectedBranch === branch ? 'font-semibold text-zaam-green-600 bg-zaam-green-50/50' : 'text-neutral-700'
-                    }`}
+              </button>
+
+              <div className="absolute left-0 pt-1 w-72 hidden group-hover:block group-focus-within:block z-50">
+                <div className="bg-white rounded-xl shadow-soft-lg border border-neutral-100 py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-100">
+                    Switch Active Branch ({branches.length})
+                  </div>
+                  <div className="max-h-72 overflow-auto">
+                    {branches.map((branch) => {
+                      const isCurrent = branch.id === selectedBranchId;
+                      return (
+                        <button
+                          key={branch.id}
+                          type="button"
+                          onClick={() => {
+                            if (isCurrent) return;
+                            setSelectedBranchId(branch.id);
+                            showToast(`Deliveries will go to ${branchLabel(branch)}`, 'success');
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-zaam-green-50 flex items-start gap-2 ${
+                            isCurrent ? 'font-semibold text-zaam-green-600 bg-zaam-green-50/50' : 'text-neutral-700'
+                          }`}
+                        >
+                          <Check className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${isCurrent ? 'text-zaam-green-600' : 'invisible'}`} />
+                          <span className="min-w-0">
+                            <span className="block truncate">{branch.company || branchLabel(branch)}</span>
+                            <span className="block text-[10px] text-neutral-400 font-normal truncate">
+                              {branchLabel(branch)} {branch.postalCode}
+                              {branch.isDefault ? ' • Default' : ''}
+                              {isCurrent ? ' • Current' : ''}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {branches.length === 0 && (
+                      <p className="px-3 py-2 text-xs text-neutral-500">No delivery branches on your account yet.</p>
+                    )}
+                  </div>
+                  <Link
+                    href="/account?panel=branches"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-zaam-green-700 hover:bg-zaam-green-50 border-t border-neutral-100"
                   >
-                    {branch}
-                  </button>
-                ))}
+                    <Plus className="w-3.5 h-3.5" />
+                    Add / manage branches
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { RetailerProfile } from '@/types';
+import { Branch, RetailerProfile } from '@/types';
 import { clearB2bTokens, getB2bAccessToken, zaamApi } from '@/lib/api';
 
 interface AuthContextType {
@@ -10,27 +10,44 @@ interface AuthContextType {
   isReady: boolean;
   updateCreditUsed: (amountChange: number) => void;
   availableCredit: number;
-  selectedBranch: string;
-  setSelectedBranch: (branch: string) => void;
-  branches: string[];
+  branches: Branch[];
+  selectedBranch: Branch | null;
+  selectedBranchId: string | null;
+  setSelectedBranchId: (id: string) => void;
+  refreshBranches: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
+
+const BRANCH_KEY = 'zaam_b2b_branch';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [retailer, setRetailer] = useState<RetailerProfile | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState<string>('Primary delivery address');
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
+
+  const refreshBranches = useCallback(async () => {
+    const rows = (await zaamApi.getBranches()).filter((b) => b.addressType !== 'billing');
+    setBranches(rows);
+    setSelectedBranchIdState((current) => {
+      const stored = current ?? localStorage.getItem(BRANCH_KEY);
+      if (stored && rows.some((b) => b.id === stored)) return stored;
+      return rows.find((b) => b.isDefault)?.id ?? rows[0]?.id ?? null;
+    });
+  }, []);
+
+  const setSelectedBranchId = (id: string) => {
+    setSelectedBranchIdState(id);
+    localStorage.setItem(BRANCH_KEY, id);
+  };
 
   const refreshProfile = useCallback(async () => {
     const profile = await zaamApi.getMe();
     setRetailer(profile);
-    if (profile.deliveryAddress?.street) {
-      setSelectedBranch(`${profile.deliveryAddress.street}, ${profile.deliveryAddress.city}`);
-    }
   }, []);
 
   useEffect(() => {
@@ -38,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         if (getB2bAccessToken()) {
           await refreshProfile();
+          await refreshBranches().catch(() => setBranches([]));
         }
       } catch {
         clearB2bTokens();
@@ -46,19 +64,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsReady(true);
       }
     })();
-  }, [refreshProfile]);
+  }, [refreshProfile, refreshBranches]);
 
   const login = async (email: string, password: string) => {
     const result = await zaamApi.login(email, password);
     setRetailer(result.retailer);
-    if (result.retailer.deliveryAddress?.street) {
-      setSelectedBranch(`${result.retailer.deliveryAddress.street}, ${result.retailer.deliveryAddress.city}`);
-    }
+    await refreshBranches().catch(() => setBranches([]));
   };
 
   const logout = () => {
     clearB2bTokens();
+    localStorage.removeItem(BRANCH_KEY);
     setRetailer(null);
+    setBranches([]);
+    setSelectedBranchIdState(null);
   };
 
   const updateCreditUsed = (amountChange: number) => {
@@ -72,9 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const availableCredit = retailer ? Number((retailer.creditLimit - retailer.creditUsed).toFixed(2)) : 0;
-  const branches = retailer?.deliveryAddress?.street
-    ? [`${retailer.deliveryAddress.street}, ${retailer.deliveryAddress.city}`.trim()]
-    : [selectedBranch];
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId) ?? null;
 
   return (
     <AuthContext.Provider
@@ -84,9 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isReady,
         updateCreditUsed,
         availableCredit,
-        selectedBranch,
-        setSelectedBranch,
         branches,
+        selectedBranch,
+        selectedBranchId,
+        setSelectedBranchId,
+        refreshBranches,
         login,
         logout,
         refreshProfile

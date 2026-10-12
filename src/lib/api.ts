@@ -1,4 +1,4 @@
-import { Product, Category, Order, RetailerProfile, NotificationItem, SupportTicket, SupportTicketMessage, SupportTicketCategory, SupportTicketPriority } from '@/types';
+import { Product, Category, Order, OrderDetail, OrderListParams, OrderListResult, Branch, RetailerProfile, NotificationItem, SupportTicket, SupportTicketMessage, SupportTicketCategory, SupportTicketPriority } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_ZAAM_API_URL || 'http://localhost:4000/api/b2b';
 
@@ -119,12 +119,21 @@ export const zaamApi = {
   },
 
   async getOrders(): Promise<Order[]> {
-    const json = await request<{ data: Order[] }>('/orders');
+    const json = await request<OrderListResult>('/orders?pageSize=100');
     return json.data || [];
   },
 
-  async getOrder(id: string): Promise<Order> {
-    const json = await request<{ data: Order }>(`/orders/${id}`);
+  async listOrders(params: OrderListParams): Promise<OrderListResult> {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+    });
+    const json = await request<OrderListResult>(`/orders?${query.toString()}`);
+    return { data: json.data || [], meta: json.meta || { total: 0, page: params.page, pageSize: params.pageSize } };
+  },
+
+  async getOrder(id: string): Promise<OrderDetail> {
+    const json = await request<{ data: OrderDetail }>(`/orders/${encodeURIComponent(id)}`);
     return json.data;
   },
 
@@ -212,8 +221,8 @@ export const zaamApi = {
     return this.getMe();
   },
 
-  async getBranches() {
-    const json = await request<{ data: any[] }>('/branches');
+  async getBranches(): Promise<Branch[]> {
+    const json = await request<{ data: Branch[] }>('/branches');
     return json.data || [];
   },
 

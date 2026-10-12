@@ -11,7 +11,7 @@ type Panel = 'profile' | 'branches' | 'buyers' | 'notifications' | 'password' | 
 
 export const SettingsMenu: React.FC = () => {
   const router = useRouter();
-  const { retailer, logout, refreshProfile } = useAuth();
+  const { retailer, logout, refreshProfile, refreshBranches } = useAuth();
   const { showToast } = useNotifications();
   const [panel, setPanel] = useState<Panel>(null);
   const [branches, setBranches] = useState<any[]>([]);
@@ -33,6 +33,10 @@ export const SettingsMenu: React.FC = () => {
       lastName: parts.slice(1).join(' ') || ''
     });
   }, [retailer]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('panel') === 'branches') open('branches');
+  }, []);
 
   const open = async (p: Panel) => {
     setPanel(p);
@@ -182,10 +186,11 @@ export const SettingsMenu: React.FC = () => {
                       <div className="font-bold">{b.company || b.addressLine1}</div>
                       <div className="text-neutral-500">{b.addressLine1}, {b.city} {b.postalCode}</div>
                     </div>
-                    <button className="text-rose-600" onClick={async () => { await zaamApi.deleteBranch(b.id); setBranches(await zaamApi.getBranches()); }}>Delete</button>
+                    <button className="text-rose-600" onClick={async () => { await zaamApi.deleteBranch(b.id); setBranches(await zaamApi.getBranches()); await refreshBranches(); }}>Delete</button>
                   </div>
                 ))}
                 <div className="grid gap-2">
+                  <input className="border rounded-xl px-3 py-2 text-xs" placeholder="Branch / store name (optional)" value={branchForm.company} onChange={(e) => setBranchForm({ ...branchForm, company: e.target.value })} />
                   <input className="border rounded-xl px-3 py-2 text-xs" placeholder="Address line 1" value={branchForm.addressLine1} onChange={(e) => setBranchForm({ ...branchForm, addressLine1: e.target.value })} />
                   <input className="border rounded-xl px-3 py-2 text-xs" placeholder="City" value={branchForm.city} onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })} />
                   <input className="border rounded-xl px-3 py-2 text-xs" placeholder="Postcode" value={branchForm.postalCode} onChange={(e) => setBranchForm({ ...branchForm, postalCode: e.target.value })} />
@@ -195,6 +200,7 @@ export const SettingsMenu: React.FC = () => {
                       try {
                         await zaamApi.createBranch(branchForm);
                         setBranches(await zaamApi.getBranches());
+                        await refreshBranches();
                         setBranchForm({ addressLine1: '', city: '', postalCode: '', countryCode: 'GB', company: '' });
                         showToast('Branch added', 'success');
                       } catch (e: any) {

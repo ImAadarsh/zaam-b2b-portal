@@ -26,7 +26,7 @@ import {
 
 export default function CheckoutPage() {
   const { cart, totalAmount, clearCart } = useCart();
-  const { retailer, availableCredit, refreshProfile } = useAuth();
+  const { retailer, availableCredit, refreshProfile, selectedBranchId } = useAuth();
   const { showToast } = useNotifications();
 
   const [deliveryOptions, setDeliveryOptions] = useState<any[]>([]);
@@ -107,6 +107,7 @@ export default function CheckoutPage() {
         shippingMethod: deliveryObj?.name,
         shippingMethodCode: deliveryObj?.code || deliveryObj?.id,
         paymentMethod,
+        addressId: selectedBranchId || undefined,
         couponCode: appliedCoupon?.couponCode,
         ...aff
       });
