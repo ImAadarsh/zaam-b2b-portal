@@ -97,8 +97,8 @@ export default function OrderDetailPage() {
                   <tr>
                     <th className="px-3 py-2.5 text-left font-semibold">SKU</th>
                     <th className="px-3 py-2.5 text-left font-semibold">Product</th>
-                    <th className="px-3 py-2.5 text-right font-semibold">Qty (cases)</th>
-                    <th className="px-3 py-2.5 text-right font-semibold">Price / case</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Qty</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Price each</th>
                     <th className="px-3 py-2.5 text-right font-semibold">Line total</th>
                   </tr>
                 </thead>

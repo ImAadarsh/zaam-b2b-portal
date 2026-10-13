@@ -4,6 +4,7 @@ import React from 'react';
 import { useCart } from '@/context/CartContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { zaamApi } from '@/lib/api';
+import { getAvailabilityMessage } from '@/lib/product';
 import { Order } from '@/types';
 
 export const OrderStatusBadge: React.FC<{ status: string }> = ({ status }) => {
@@ -46,19 +47,22 @@ export function formatOrderDate(order: Pick<Order, 'date' | 'orderDate'>) {
 }
 
 export function useReorder() {
-  const { addToCart, setIsCartDrawerOpen } = useCart();
+  const { addToCart, getItemQuantity, setIsCartDrawerOpen } = useCart();
   const { showToast } = useNotifications();
 
   return async (order: Pick<Order, 'orderNumber' | 'items'>) => {
     try {
       const products = await zaamApi.getProducts();
       let itemsAdded = 0;
+      const short: string[] = [];
       (order.items || []).forEach((item) => {
         for (const prod of products) {
           const matchedVar = prod.variants.find((v) => v.sku === item.sku);
           if (matchedVar) {
-            addToCart(prod, matchedVar, item.quantity);
-            itemsAdded += item.quantity;
+            const before = getItemQuantity(matchedVar.id);
+            const result = addToCart(prod, matchedVar, item.quantity);
+            itemsAdded += Math.max(0, result.quantity - before);
+            if (result.capped) short.push(`${prod.name} (${getAvailabilityMessage(matchedVar).toLowerCase()})`);
             break;
           }
         }
@@ -67,7 +71,11 @@ export function useReorder() {
         showToast(`None of the items from ${order.orderNumber} are currently available`, 'error');
         return;
       }
-      showToast(`Added ${itemsAdded} cases from order ${order.orderNumber} to basket!`, 'success');
+      if (short.length) {
+        showToast(`Added what is in stock from ${order.orderNumber}. Limited: ${short.join('; ')}`, 'warning');
+      } else {
+        showToast(`Added the items from order ${order.orderNumber} to basket`, 'success');
+      }
       setIsCartDrawerOpen(true);
     } catch (e: any) {
       showToast(e.message || 'Re-order failed', 'error');

@@ -8,8 +8,13 @@ import { useNotifications } from '@/context/NotificationContext';
 import { ProductImage } from '@/components/ui/ProductImage';
 import {
   EM_DASH,
-  getPackSizeLabel,
+  formatSaleQty,
+  getAvailabilityMessage,
+  getContainedUnits,
+  getMaxOrderQty,
+  getPackLabel,
   getPorPercent,
+  getSaleUnit,
   getStockInfo,
   STOCK_TONE_CLASS
 } from '@/lib/product';
@@ -30,13 +35,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
   // A catalog item with no sellable variant cannot be priced or ordered.
   if (!currentVariant) return null;
 
+  const maxQty = getMaxOrderQty(currentVariant);
+  const atLimit = currentCartQty >= maxQty;
+  const overStock = currentCartQty > maxQty;
+
   const handleAdd = () => {
-    addToCart(product, currentVariant, 1);
-    showToast(`Added 1 case of ${product.brand} (${currentVariant.name}) to basket`, 'success');
+    const result = addToCart(product, currentVariant, 1);
+    if (result.quantity === 0) {
+      showToast(`${product.name} is out of stock`, 'error');
+      return;
+    }
+    showToast(`Added ${formatSaleQty(1, currentVariant)} of ${product.name} to basket`, 'success');
   };
 
   const handleIncrement = () => {
-    updateQuantity(currentVariant.id, currentCartQty + 1);
+    const result = updateQuantity(currentVariant.id, currentCartQty + 1);
+    if (result.capped) showToast(getAvailabilityMessage(currentVariant), 'warning');
   };
 
   const handleDecrement = () => {
@@ -48,9 +62,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
     : currentVariant.casePrice;
 
   const porPercent = getPorPercent(currentVariant);
-  const packSize = getPackSizeLabel(currentVariant.packSize);
-  const stock = getStockInfo(currentVariant.stockLevel);
-  const unitsPerCase = Number(currentVariant.unitsPerCase) > 0 ? Number(currentVariant.unitsPerCase) : 1;
+  const packSize = getPackLabel(currentVariant);
+  const stock = getStockInfo(currentVariant.stockLevel, currentVariant);
+  const saleUnit = getSaleUnit(currentVariant);
+  const containedUnits = getContainedUnits(currentCartQty, currentVariant);
 
   return (
     <div className="bg-white rounded-xl border border-neutral-200/80 shadow-soft-sm hover:shadow-soft-md hover:border-zaam-green-600/30 transition-all duration-200 overflow-hidden flex flex-col group">
@@ -151,7 +166,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
               <span className="text-sm font-extrabold text-zaam-dark-900">
                 £{currentVariant.casePrice.toFixed(2)}
               </span>
-              <span className="text-[9px] text-neutral-400 ml-1">/case ex VAT</span>
+              <span className="text-[9px] text-neutral-400 ml-1">/{saleUnit} ex VAT</span>
             </div>
 
             {lowestTierPrice < currentVariant.casePrice && (
@@ -165,34 +180,54 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
           {currentCartQty === 0 ? (
             <button
               onClick={handleAdd}
-              className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 text-white font-semibold text-[11px] py-2 px-2 rounded-lg flex items-center justify-center space-x-1 shadow-sm btn-press transition-colors"
+              disabled={maxQty <= 0}
+              className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-semibold text-[11px] py-2 px-2 rounded-lg flex items-center justify-center space-x-1 shadow-sm btn-press transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add to Basket</span>
+              {maxQty <= 0 ? (
+                <span>Out of stock</span>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add to Basket</span>
+                </>
+              )}
             </button>
           ) : (
-            <div className="flex items-center justify-between bg-zaam-green-50 border border-zaam-green-200 rounded-lg p-0.5">
-              <button
-                onClick={handleDecrement}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-white text-neutral-800 hover:bg-neutral-100 shadow-xs"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <div className="text-center px-1 min-w-0">
-                <span className="text-[11px] font-extrabold text-zaam-green-800 block leading-tight">
-                  {currentCartQty} {currentCartQty === 1 ? 'Case' : 'Cases'}
-                </span>
-                <span className="block text-[9px] text-neutral-500 font-medium leading-tight">
-                  {currentCartQty * unitsPerCase} {currentCartQty * unitsPerCase === 1 ? 'unit' : 'units'}
-                </span>
+            <>
+              <div className={`flex items-center justify-between rounded-lg p-0.5 border ${overStock ? 'bg-rose-50 border-rose-200' : 'bg-zaam-green-50 border-zaam-green-200'}`}>
+                <button
+                  onClick={handleDecrement}
+                  className="w-7 h-7 flex items-center justify-center rounded-md bg-white text-neutral-800 hover:bg-neutral-100 shadow-xs"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <div className="text-center px-1 min-w-0">
+                  <span className="text-[11px] font-extrabold text-zaam-green-800 block leading-tight">
+                    {formatSaleQty(currentCartQty, currentVariant, true)}
+                  </span>
+                  {containedUnits !== null && (
+                    <span className="block text-[9px] text-neutral-500 font-medium leading-tight">
+                      {containedUnits} units
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleIncrement}
+                  disabled={atLimit}
+                  className="w-7 h-7 flex items-center justify-center rounded-md bg-zaam-green-600 text-white hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:cursor-not-allowed shadow-xs"
+                  aria-label="Increase quantity"
+                  title={atLimit ? getAvailabilityMessage(currentVariant) : undefined}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={handleIncrement}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-zaam-green-600 text-white hover:bg-zaam-green-700 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              {atLimit && (
+                <p className={`mt-1 text-center text-[9px] font-semibold ${overStock ? 'text-rose-600' : 'text-amber-600'}`}>
+                  {getAvailabilityMessage(currentVariant)}
+                </p>
+              )}
+            </>
           )}
         </div>
 

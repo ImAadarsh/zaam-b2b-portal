@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingBag, Scale, Layers, Tag, Loader2 } from 'lucide-react';
+import { ShoppingBag, Scale, Layers, Tag, Loader2, AlertTriangle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { zaamApi } from '@/lib/api';
 import { useNotifications } from '@/context/NotificationContext';
 import { ProductImage } from '@/components/ui/ProductImage';
-import { EM_DASH, getPackSizeLabel, getWeightLabel } from '@/lib/product';
+import { EM_DASH, formatSaleQty, getMaxOrderQty, getPackLabel, getWeightLabel } from '@/lib/product';
 
 type AppliedCoupon = {
   couponCode: string;
@@ -65,7 +65,7 @@ export const OrderSummary: React.FC<Props> = ({
           <ShoppingBag className="w-4 h-4 text-zaam-green-600" />
           <h3 className="text-sm font-bold text-neutral-900">Order Manifest & Summary</h3>
         </div>
-        <span className="text-xs font-semibold text-neutral-500">{totalCases} Cases</span>
+        <span className="text-xs font-semibold text-neutral-500">{totalCases} {totalCases === 1 ? 'item' : 'items'}</span>
       </div>
 
       <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
@@ -81,8 +81,16 @@ export const OrderSummary: React.FC<Props> = ({
               <div className="min-w-0">
                 <p className="font-bold text-neutral-800 truncate">{item.product.brand} - {item.variant.name}</p>
                 <p className="text-[10px] text-neutral-400">
-                  {item.quantity} cs ({getPackSizeLabel(item.variant.packSize) ?? EM_DASH})
+                  {formatSaleQty(item.quantity, item.variant)} ({getPackLabel(item.variant) ?? EM_DASH})
                 </p>
+                {item.quantity > getMaxOrderQty(item.variant) && (
+                  <p className="text-[10px] font-semibold text-rose-600 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {getMaxOrderQty(item.variant) > 0
+                      ? `Only ${formatSaleQty(getMaxOrderQty(item.variant), item.variant)} available`
+                      : 'Out of stock'}
+                  </p>
+                )}
               </div>
             </div>
             <div className="text-right flex-shrink-0 ml-2">

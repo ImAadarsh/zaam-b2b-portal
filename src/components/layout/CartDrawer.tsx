@@ -2,10 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { X, Trash2, Plus, Minus, ArrowRight, ShieldCheck, ShoppingBag, Scale, Layers } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ArrowRight, ShieldCheck, ShoppingBag, Scale, Layers, AlertTriangle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { ProductImage } from '@/components/ui/ProductImage';
-import { getPackSizeLabel, EM_DASH, getWeightLabel } from '@/lib/product';
+import {
+  EM_DASH,
+  formatSaleQty,
+  getAvailabilityMessage,
+  getContainedUnits,
+  getMaxOrderQty,
+  getPackLabel,
+  getSaleUnit,
+  getWeightLabel
+} from '@/lib/product';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -20,8 +30,11 @@ export const CartDrawer: React.FC = () => {
     totalWeightKg,
     subtotal,
     vatAmount,
-    totalAmount
+    totalAmount,
+    stockIssues,
+    fixStockIssues
   } = useCart();
+  const { showToast } = useNotifications();
 
   if (!isCartDrawerOpen) return null;
 
@@ -44,7 +57,7 @@ export const CartDrawer: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-zaam-dark-900">Wholesale Basket</h2>
-                <p className="text-xs text-neutral-500">{totalCases} Cases ({totalUnits} Units)</p>
+                <p className="text-xs text-neutral-500">{totalCases} {totalCases === 1 ? 'item' : 'items'} ({totalUnits} {totalUnits === 1 ? 'unit' : 'units'})</p>
               </div>
             </div>
 
@@ -86,10 +99,15 @@ export const CartDrawer: React.FC = () => {
                 </button>
               </div>
             ) : (
-              cart.map((item) => (
+              cart.map((item) => {
+                const max = getMaxOrderQty(item.variant);
+                const over = item.quantity > max;
+                const atLimit = item.quantity >= max;
+                const units = getContainedUnits(item.quantity, item.variant);
+                return (
                 <div
                   key={item.variant.id}
-                  className="bg-white border border-neutral-200/80 rounded-xl p-3 shadow-soft-sm hover:border-zaam-green-600/30 transition-all flex space-x-3"
+                  className={`bg-white border rounded-xl p-3 shadow-soft-sm transition-all flex space-x-3 ${over ? 'border-rose-300' : 'border-neutral-200/80 hover:border-zaam-green-600/30'}`}
                 >
                   {/* Thumbnail */}
                   <ProductImage
@@ -105,7 +123,10 @@ export const CartDrawer: React.FC = () => {
                       {item.product.brand} - {item.variant.name}
                     </h4>
                     <p className="text-[11px] text-neutral-500 truncate">
-                      Pack: {getPackSizeLabel(item.variant.packSize) ?? EM_DASH} • SKU: {item.variant.sku}
+                      Pack: {getPackLabel(item.variant) ?? EM_DASH} • SKU: {item.variant.sku}
+                    </p>
+                    <p className="text-[11px] text-neutral-500">
+                      {formatSaleQty(item.quantity, item.variant)}{units !== null ? ` · ${units} units` : ''}
                     </p>
 
                     <div className="flex items-center justify-between mt-2">
@@ -114,7 +135,7 @@ export const CartDrawer: React.FC = () => {
                           £{(item.variant.casePrice * item.quantity).toFixed(2)}
                         </span>
                         <span className="text-[10px] text-neutral-400">
-                          (£{item.variant.casePrice.toFixed(2)}/cs)
+                          (£{item.variant.casePrice.toFixed(2)}/{getSaleUnit(item.variant)})
                         </span>
                       </div>
 
@@ -130,16 +151,33 @@ export const CartDrawer: React.FC = () => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.variant.id, item.quantity + 1)}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-white text-neutral-700 hover:bg-neutral-200 text-xs font-bold"
+                          onClick={() => {
+                            const result = updateQuantity(item.variant.id, item.quantity + 1);
+                            if (result.capped) showToast(getAvailabilityMessage(item.variant), 'warning');
+                          }}
+                          disabled={atLimit}
+                          title={atLimit ? getAvailabilityMessage(item.variant) : undefined}
+                          className="w-6 h-6 flex items-center justify-center rounded bg-white text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold"
+                          aria-label="Increase quantity"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
+                    {atLimit && (
+                      <p className={`mt-1.5 text-[10px] font-semibold flex items-center gap-1 ${over ? 'text-rose-600' : 'text-amber-600'}`}>
+                        {over && <AlertTriangle className="w-3 h-3 flex-shrink-0" />}
+                        {over
+                          ? max > 0
+                            ? `Only ${formatSaleQty(max, item.variant)} available now — reduce to ${max}`
+                            : 'Now out of stock — remove from basket'
+                          : getAvailabilityMessage(item.variant)}
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -154,7 +192,7 @@ export const CartDrawer: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-1.5">
                   <Layers className="w-3.5 h-3.5 text-neutral-400" />
-                  <span>Cases: <strong>{totalCases}</strong></span>
+                  <span>Items: <strong>{totalCases}</strong></span>
                 </div>
               </div>
 
@@ -175,14 +213,32 @@ export const CartDrawer: React.FC = () => {
               </div>
 
               {/* Checkout Button */}
-              <Link
-                href="/checkout"
-                onClick={() => setIsCartDrawerOpen(false)}
-                className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all"
-              >
-                <span>Proceed to Checkout</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {stockIssues.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2.5">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      Stock has changed for {stockIssues.length} {stockIssues.length === 1 ? 'item' : 'items'} in your basket.
+                      Adjust the quantities to continue.
+                    </span>
+                  </div>
+                  <button
+                    onClick={fixStockIssues}
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center space-x-2 btn-press transition-all"
+                  >
+                    <span>Update basket to available stock</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/checkout"
+                  onClick={() => setIsCartDrawerOpen(false)}
+                  className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all"
+                >
+                  <span>Proceed to Checkout</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
 
               <div className="flex items-center justify-center space-x-1 text-[11px] text-neutral-500">
                 <ShieldCheck className="w-3.5 h-3.5 text-zaam-green-600" />

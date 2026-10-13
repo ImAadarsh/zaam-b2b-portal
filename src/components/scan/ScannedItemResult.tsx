@@ -1,12 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Minus, ShoppingBag, X, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
 import { Product, ProductVariant } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { ProductImage } from '@/components/ui/ProductImage';
-import { EM_DASH, getBarcodeLabel, getPackSizeLabel } from '@/lib/product';
+import { QuantityInput } from '@/components/ui/QuantityInput';
+import {
+  EM_DASH,
+  formatSaleQty,
+  getAvailabilityMessage,
+  getBarcodeLabel,
+  getMaxOrderQty,
+  getPackLabel,
+  getSaleUnit,
+  getStockInfo,
+  STOCK_TONE_CLASS
+} from '@/lib/product';
 
 interface ScannedItemResultProps {
   product: Product;
@@ -19,13 +30,23 @@ export const ScannedItemResult: React.FC<ScannedItemResultProps> = ({
   variant,
   onClose
 }) => {
-  const [quantity, setQuantity] = useState(1);
-  const { addToCart, setIsCartDrawerOpen } = useCart();
+  const [requested, setRequested] = useState(1);
+  const { addToCart, getItemQuantity, setIsCartDrawerOpen } = useCart();
   const { showToast } = useNotifications();
 
+  const inBasket = getItemQuantity(variant.id);
+  const addable = Math.max(0, getMaxOrderQty(variant) - inBasket);
+  const quantity = Math.min(requested, Math.max(addable, 1));
+  const stock = getStockInfo(variant.stockLevel, variant);
+
   const handleAdd = () => {
-    addToCart(product, variant, quantity);
-    showToast(`Added ${quantity} cases of ${product.brand} (${variant.name}) to basket!`, 'success');
+    const result = addToCart(product, variant, quantity);
+    const added = result.quantity - inBasket;
+    if (added <= 0) {
+      showToast(getAvailabilityMessage(variant), 'error');
+      return;
+    }
+    showToast(`Added ${formatSaleQty(added, variant)} of ${product.name} to basket`, result.capped ? 'warning' : 'success');
     onClose();
     setIsCartDrawerOpen(true);
   };
@@ -74,35 +95,35 @@ export const ScannedItemResult: React.FC<ScannedItemResultProps> = ({
           </div>
 
           {/* Quick Specs */}
-          <div className="grid grid-cols-2 gap-2 text-xs bg-neutral-50 p-3 rounded-xl border border-neutral-200">
+          <div className="grid grid-cols-3 gap-2 text-xs bg-neutral-50 p-3 rounded-xl border border-neutral-200">
             <div>
               <span className="text-neutral-400 text-[10px] block">Pack Size</span>
-              <span className="font-bold text-neutral-800">{getPackSizeLabel(variant.packSize) ?? EM_DASH}</span>
+              <span className="font-bold text-neutral-800">{getPackLabel(variant) ?? EM_DASH}</span>
             </div>
             <div>
               <span className="text-neutral-400 text-[10px] block">Wholesale Price</span>
-              <span className="font-bold text-zaam-green-700 text-sm">£{variant.casePrice.toFixed(2)} /case</span>
+              <span className="font-bold text-zaam-green-700 text-sm">£{variant.casePrice.toFixed(2)} /{getSaleUnit(variant)}</span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-[10px] block">Availability</span>
+              <span className={`font-bold ${STOCK_TONE_CLASS[stock.tone]}`}>{stock.label}</span>
             </div>
           </div>
 
-          {/* Case Stepper */}
+          {/* Quantity */}
           <div className="flex items-center justify-between pt-2">
-            <span className="text-xs font-bold text-neutral-700">Order Quantity:</span>
-            <div className="flex items-center space-x-2 bg-neutral-100 border border-neutral-200 rounded-xl p-1">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white text-neutral-800 font-bold shadow-xs"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <span className="w-8 text-center text-sm font-extrabold text-neutral-900">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-zaam-green-600 text-white font-bold shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
+            <div>
+              <span className="text-xs font-bold text-neutral-700">Order Quantity:</span>
+              {addable > 0 && quantity >= addable && (
+                <span className="block text-[10px] font-semibold text-amber-600">{getAvailabilityMessage(variant)}</span>
+              )}
             </div>
+            <QuantityInput
+              value={quantity}
+              max={addable}
+              onChange={setRequested}
+              onLimit={() => showToast(getAvailabilityMessage(variant), 'warning')}
+            />
           </div>
 
           {/* Price & Action */}
@@ -116,10 +137,17 @@ export const ScannedItemResult: React.FC<ScannedItemResultProps> = ({
 
             <button
               onClick={handleAdd}
-              className="bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-bold py-3 px-5 rounded-xl shadow-glow-green flex items-center space-x-1.5 btn-press"
+              disabled={addable <= 0}
+              className="bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:shadow-none disabled:cursor-not-allowed text-white text-xs font-bold py-3 px-5 rounded-xl shadow-glow-green flex items-center space-x-1.5 btn-press"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Add {quantity} Case(s)</span>
+              <span>
+                {getMaxOrderQty(variant) <= 0
+                  ? 'Out of stock'
+                  : addable <= 0
+                    ? 'All available stock in basket'
+                    : `Add ${formatSaleQty(quantity, variant)}`}
+              </span>
             </button>
           </div>
         </div>

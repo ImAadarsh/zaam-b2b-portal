@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function CheckoutPage() {
-  const { cart, totalAmount, clearCart } = useCart();
+  const { cart, totalAmount, clearCart, stockIssues, fixStockIssues, refreshStock } = useCart();
   const { retailer, availableCredit, refreshProfile, selectedBranchId } = useAuth();
   const { showToast } = useNotifications();
 
@@ -50,6 +50,10 @@ export default function CheckoutPage() {
     discountAmount: number;
     freeShipping?: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    void refreshStock();
+  }, [refreshStock]);
 
   useEffect(() => {
     (async () => {
@@ -97,6 +101,10 @@ export default function CheckoutPage() {
 
   const handleProcessOrder = async () => {
     if (!retailer) return;
+    if (stockIssues.length > 0) {
+      showToast('Some basket quantities are above available stock. Update your basket first.', 'error');
+      return;
+    }
     setIsProcessing(true);
     setPendingNotice(null);
     try {
@@ -153,6 +161,7 @@ export default function CheckoutPage() {
       }
     } catch (err: any) {
       showToast(err.message || 'Order processing error', 'error');
+      if (/out of stock|available/i.test(String(err.message || ''))) void refreshStock();
     } finally {
       setIsProcessing(false);
     }
@@ -321,10 +330,34 @@ export default function CheckoutPage() {
             }
           />
           <div className="bg-white rounded-2xl p-5 shadow-soft-sm border border-neutral-200/80 space-y-3">
+            {stockIssues.length > 0 && (
+              <div className="space-y-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold">Stock has changed since you added these items:</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {stockIssues.map(({ item, max }) => (
+                        <li key={item.variant.id}>
+                          {item.product.name}: {max > 0 ? `only ${max} available (basket has ${item.quantity})` : 'out of stock'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={fixStockIssues}
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg"
+                >
+                  Update basket to available stock
+                </button>
+              </div>
+            )}
             <button
               onClick={handleProcessOrder}
-              disabled={isProcessing || !selectedDelivery}
-              className={`w-full font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${isProcessing || !selectedDelivery ? 'bg-neutral-400 text-white cursor-not-allowed' : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'}`}
+              disabled={isProcessing || !selectedDelivery || stockIssues.length > 0}
+              className={`w-full font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${isProcessing || !selectedDelivery || stockIssues.length > 0 ? 'bg-neutral-400 text-white cursor-not-allowed' : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'}`}
             >
               {isProcessing ? (
                 <>

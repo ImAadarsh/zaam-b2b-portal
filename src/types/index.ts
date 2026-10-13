@@ -23,6 +23,7 @@ export interface ProductVariant {
   size?: string;
   packSize: string; // e.g. "24 x 500ml" or "12 x 250ml"
   unitsPerCase: number;
+  saleUnit?: string; // what one ordered quantity is: case, display, pack, outer, box, set or unit
   barcode: string;
   casePrice: number;
   unitPrice: number;
@@ -58,7 +59,7 @@ export interface Product {
 export interface CartItem {
   product: Product;
   variant: ProductVariant;
-  quantity: number; // in cases
+  quantity: number; // in the variant's sale unit (see saleUnit)
 }
 
 export interface RetailerProfile {

@@ -1,21 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Minus, ShoppingBag, Scale, Barcode, Layers, Sparkles, TrendingUp } from 'lucide-react';
+import { X, ShoppingBag, Scale, Barcode, Layers, Sparkles, TrendingUp } from 'lucide-react';
 import { Product, ProductVariant } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { ProductImage } from '@/components/ui/ProductImage';
 import {
   EM_DASH,
+  formatSaleQty,
+  getAvailabilityMessage,
   getBarcodeLabel,
-  getPackSizeLabel,
+  getMaxOrderQty,
+  getPackLabel,
   getPorPercent,
+  getSaleUnit,
   getStockInfo,
   getUnitsPerCaseLabel,
   getWeightLabel,
   STOCK_TONE_CLASS
 } from '@/lib/product';
+import { QuantityInput } from '@/components/ui/QuantityInput';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -32,18 +37,33 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     initialVariant || product.variants[0]
   );
   const [orderQuantity, setOrderQuantity] = useState(1);
-  const { addToCart, setIsCartDrawerOpen } = useCart();
+  const { addToCart, getItemQuantity, setIsCartDrawerOpen } = useCart();
   const { showToast } = useNotifications();
 
+  const inBasket = getItemQuantity(selectedVariant.id);
+  const addable = Math.max(0, getMaxOrderQty(selectedVariant) - inBasket);
+  const quantity = Math.min(orderQuantity, Math.max(addable, 1));
+
   const handleAddToCart = () => {
-    addToCart(product, selectedVariant, orderQuantity);
-    showToast(`Added ${orderQuantity} cases of ${product.brand} (${selectedVariant.name}) to basket!`, 'success');
+    const result = addToCart(product, selectedVariant, quantity);
+    const added = result.quantity - inBasket;
+    if (added <= 0) {
+      showToast(getAvailabilityMessage(selectedVariant), 'error');
+      return;
+    }
+    showToast(
+      result.capped
+        ? `${getAvailabilityMessage(selectedVariant)} — basket set to ${formatSaleQty(result.quantity, selectedVariant)}`
+        : `Added ${formatSaleQty(added, selectedVariant)} of ${product.name} to basket`,
+      result.capped ? 'warning' : 'success'
+    );
     onClose();
     setIsCartDrawerOpen(true);
   };
 
   const porPercent = getPorPercent(selectedVariant);
-  const stock = getStockInfo(selectedVariant.stockLevel);
+  const stock = getStockInfo(selectedVariant.stockLevel, selectedVariant);
+  const saleUnit = getSaleUnit(selectedVariant);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-zaam-dark-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
@@ -68,9 +88,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </h3>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[10px] font-semibold text-white/70">
-                {getPackSizeLabel(selectedVariant.packSize)
-                  ? `Pack ${getPackSizeLabel(selectedVariant.packSize)}`
-                  : `Pack ${EM_DASH}`}
+                {`Pack: ${getPackLabel(selectedVariant) ?? EM_DASH}`}
               </span>
               {porPercent !== null && (
                 <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -115,9 +133,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     }`}
                   >
                     <p className="text-[11px] font-bold text-neutral-900 truncate">{v.name}</p>
-                    <p className="text-[10px] text-neutral-500">{getPackSizeLabel(v.packSize) ?? EM_DASH}</p>
+                    <p className="text-[10px] text-neutral-500">{getPackLabel(v) ?? EM_DASH}</p>
                     <p className="text-[11px] font-extrabold text-zaam-green-700 mt-0.5">
-                      £{v.casePrice.toFixed(2)}/case
+                      £{v.casePrice.toFixed(2)}/{getSaleUnit(v)}
                     </p>
                   </button>
                 ))}
@@ -130,19 +148,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/80 space-y-2">
               <div className="flex items-center space-x-1.5 text-[11px] font-bold text-neutral-800">
                 <Sparkles className="w-3.5 h-3.5 text-zaam-gold-500" />
-                <span>Tier Volume Pricing (Per Case)</span>
+                <span>Tier Volume Pricing (Per {saleUnit.charAt(0).toUpperCase() + saleUnit.slice(1)})</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {product.tierPricing.map((tier) => (
                   <div
                     key={tier.minCases}
                     className={`p-1.5 rounded-lg text-center border ${
-                      orderQuantity >= tier.minCases
+                      quantity >= tier.minCases
                         ? 'bg-zaam-green-600 text-white border-zaam-green-600'
                         : 'bg-white text-neutral-700 border-neutral-200'
                     }`}
                   >
-                    <span className="text-[9px] block opacity-80">{tier.minCases}+ Cases</span>
+                    <span className="text-[9px] block opacity-80">{formatSaleQty(tier.minCases, selectedVariant, true)}+</span>
                     <span className="text-[11px] font-bold">£{tier.pricePerCase.toFixed(2)}</span>
                   </div>
                 ))}
@@ -165,7 +183,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
               <div className="flex items-center space-x-1.5 text-neutral-400 mb-0.5">
                 <Scale className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-semibold uppercase">Case Weight</span>
+                <span className="text-[9px] font-semibold uppercase">{saleUnit === 'unit' ? 'Unit' : saleUnit} Weight</span>
               </div>
               <p className="font-bold text-neutral-800 text-[11px]">{getWeightLabel(selectedVariant.weightKg)}</p>
             </div>
@@ -173,7 +191,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="p-2.5 bg-neutral-50 rounded-lg border border-neutral-200">
               <div className="flex items-center space-x-1.5 text-neutral-400 mb-0.5">
                 <Layers className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-semibold uppercase">Units / Case</span>
+                <span className="text-[9px] font-semibold uppercase">Units / {saleUnit}</span>
               </div>
               <p className="font-bold text-neutral-800 text-[11px]">
                 {getUnitsPerCaseLabel(selectedVariant.unitsPerCase)}
@@ -193,38 +211,43 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Modal Footer / Add to Basket Bar */}
         <div className="p-3 sm:p-4 border-t border-neutral-200 bg-neutral-50 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
-            <span className="text-xs font-semibold text-neutral-600">Case Qty:</span>
-            <div className="flex items-center space-x-2 bg-white border border-neutral-300 rounded-xl p-1 shadow-xs">
-              <button
-                onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-8 text-center text-sm font-bold text-neutral-900">{orderQuantity}</span>
-              <button
-                onClick={() => setOrderQuantity(orderQuantity + 1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+            <div>
+              <span className="text-xs font-semibold text-neutral-600 capitalize">{saleUnit} Qty:</span>
+              {addable > 0 && quantity >= addable && (
+                <span className="block text-[10px] font-semibold text-amber-600">
+                  {inBasket > 0 ? `${getAvailabilityMessage(selectedVariant)} (${inBasket} in basket)` : getAvailabilityMessage(selectedVariant)}
+                </span>
+              )}
             </div>
+            <QuantityInput
+              value={quantity}
+              max={addable}
+              onChange={setOrderQuantity}
+              onLimit={() => showToast(getAvailabilityMessage(selectedVariant), 'warning')}
+            />
           </div>
 
           <div className="flex items-center space-x-3 w-full sm:w-auto">
             <div className="text-right sm:text-left">
               <span className="text-[11px] text-neutral-400">Total (ex VAT):</span>
               <p className="text-base font-extrabold text-zaam-green-700">
-                £{(selectedVariant.casePrice * orderQuantity).toFixed(2)}
+                £{(selectedVariant.casePrice * quantity).toFixed(2)}
               </p>
             </div>
 
             <button
               onClick={handleAddToCart}
-              className="flex-1 sm:flex-initial bg-zaam-green-600 hover:bg-zaam-green-700 text-white font-semibold text-xs sm:text-sm py-2.5 px-5 rounded-xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all"
+              disabled={addable <= 0}
+              className="flex-1 sm:flex-initial bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:shadow-none disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm py-2.5 px-5 rounded-xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Add to Basket</span>
+              <span>
+                {getMaxOrderQty(selectedVariant) <= 0
+                  ? 'Out of stock'
+                  : addable <= 0
+                    ? 'All available stock in basket'
+                    : 'Add to Basket'}
+              </span>
             </button>
           </div>
         </div>

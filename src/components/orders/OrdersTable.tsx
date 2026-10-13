@@ -201,7 +201,7 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
               {sortHeader('date', 'Date')}
               {!compact && <th className="px-3 py-2.5 text-left font-semibold">Branch</th>}
               {sortHeader('status', 'Status')}
-              <th className="px-3 py-2.5 text-right font-semibold">Cases</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Qty</th>
               {sortHeader('total', 'Total', 'right')}
               {!compact && <th className="px-3 py-2.5 text-left font-semibold">Tracking</th>}
             </tr>
