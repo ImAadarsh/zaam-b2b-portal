@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CameraScanner } from '@/components/scan/CameraScanner';
-import { ScannedItemResult } from '@/components/scan/ScannedItemResult';
+import React, { Suspense, lazy, useState } from 'react';
 import { Product, ProductVariant } from '@/types';
-import { ScanLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { Loader2, ScanLine, Sparkles } from 'lucide-react';
+
+const CameraScanner = lazy(() =>
+  import('@/components/scan/CameraScanner').then((m) => ({ default: m.CameraScanner }))
+);
+const ScannedItemResult = lazy(() =>
+  import('@/components/scan/ScannedItemResult').then((m) => ({ default: m.ScannedItemResult }))
+);
 
 export default function ScanPage() {
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
@@ -17,8 +22,6 @@ export default function ScanPage() {
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-300">
-      
-      {/* Header */}
       <div className="bg-white rounded-2xl p-5 shadow-soft-sm border border-neutral-200/80 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-gradient-to-tr from-zaam-green-700 to-zaam-green-600 text-white rounded-2xl shadow-glow-green">
@@ -40,22 +43,30 @@ export default function ScanPage() {
         </span>
       </div>
 
-      {/* Main Camera Viewport & Controls */}
-      <CameraScanner onScanResult={handleScanResult} />
+      <Suspense
+        fallback={
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-soft-sm p-10 flex flex-col items-center gap-3 text-neutral-500">
+            <Loader2 className="w-6 h-6 animate-spin text-zaam-green-600" />
+            <p className="text-xs font-medium">Loading camera scanner…</p>
+          </div>
+        }
+      >
+        <CameraScanner onScanResult={handleScanResult} />
+      </Suspense>
 
-      {/* Scanned Result Pop-up Modal */}
       {scannedProduct && scannedVariant && (
-        <ScannedItemResult
-          key={scannedVariant.id}
-          product={scannedProduct}
-          variant={scannedVariant}
-          onClose={() => {
-            setScannedProduct(null);
-            setScannedVariant(null);
-          }}
-        />
+        <Suspense fallback={null}>
+          <ScannedItemResult
+            key={scannedVariant.id}
+            product={scannedProduct}
+            variant={scannedVariant}
+            onClose={() => {
+              setScannedProduct(null);
+              setScannedVariant(null);
+            }}
+          />
+        </Suspense>
       )}
-
     </div>
   );
 }

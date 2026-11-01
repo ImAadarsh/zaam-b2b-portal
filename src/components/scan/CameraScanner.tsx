@@ -75,6 +75,43 @@ function hapticPulse() {
   }
 }
 
+/** Interrupted play() / superseded stream — never show these to users. */
+function isBenignMediaError(err: unknown): boolean {
+  const e = err as { name?: string; message?: string } | null;
+  const name = e?.name || '';
+  const msg = (e?.message || '').toLowerCase();
+  if (name === 'AbortError') return true;
+  if (msg.includes('interrupted by a new load request')) return true;
+  if (msg.includes('the play() request was interrupted')) return true;
+  if (msg.includes('interrupted by a call to pause')) return true;
+  return false;
+}
+
+function toUserFacingCameraError(err: unknown): string | null {
+  if (isBenignMediaError(err)) return null;
+
+  const e = err as { name?: string; message?: string } | null;
+  const name = e?.name || '';
+
+  if (typeof window !== 'undefined' && !window.isSecureContext) {
+    return 'Camera needs HTTPS or localhost. Enter the barcode manually.';
+  }
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+    return 'Camera permission was denied. Allow camera access or enter the barcode manually.';
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return 'No camera was found on this device. Enter the barcode manually.';
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return 'Camera is in use by another app. Close it and try again, or enter the barcode manually.';
+  }
+  if (name === 'SecurityError') {
+    return 'Camera needs HTTPS or localhost. Enter the barcode manually.';
+  }
+  // Never dump raw browser / Google help URLs
+  return 'Could not start the camera. Enter the barcode manually.';
+}
+
 export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -83,19 +120,25 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
   const lastDetectAt = useRef(0);
   const lastCodeRef = useRef('');
   const lookingUpRef = useRef(false);
+  /** Bumps on every start/stop so in-flight starts ignore stale results. */
+  const cameraSessionRef = useRef(0);
+  const onScanResultRef = useRef(onScanResult);
+  onScanResultRef.current = onScanResult;
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [manualBarcode, setManualBarcode] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [engine, setEngine] = useState<'native' | 'zxing' | null>(null);
   const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [lookupBusy, setLookupBusy] = useState(false);
 
   const stopCamera = useCallback(() => {
+    cameraSessionRef.current += 1;
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -116,34 +159,32 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
     setTorchOn(false);
   }, []);
 
-  const handleBarcodeLookup = useCallback(
-    async (code: string) => {
-      const cleanCode = code.trim();
-      if (!cleanCode || lookingUpRef.current) return;
-      lookingUpRef.current = true;
-      setLookupBusy(true);
-      setErrorMessage(null);
-      try {
-        const prod = await zaamApi.getProductByBarcode(cleanCode);
-        const matched = prod?.variants.find((v) => v.barcode === cleanCode) || prod?.variants[0];
-        if (prod && matched) {
-          setNotFoundCode(null);
-          playBeep();
-          hapticPulse();
-          onScanResult(prod, matched);
-          setManualBarcode('');
-          return;
-        }
-        setNotFoundCode(cleanCode);
-      } catch (e: any) {
-        setErrorMessage(e?.message || 'Lookup failed');
-      } finally {
-        lookingUpRef.current = false;
-        setLookupBusy(false);
+  const handleBarcodeLookup = useCallback(async (code: string) => {
+    const cleanCode = code.trim();
+    if (!cleanCode || lookingUpRef.current) return;
+    lookingUpRef.current = true;
+    setLookupBusy(true);
+    setLookupError(null);
+    try {
+      const prod = await zaamApi.getProductByBarcode(cleanCode);
+      const matched = prod?.variants.find((v) => v.barcode === cleanCode) || prod?.variants[0];
+      if (prod && matched) {
+        setNotFoundCode(null);
+        playBeep();
+        hapticPulse();
+        onScanResultRef.current(prod, matched);
+        setManualBarcode('');
+        return;
       }
-    },
-    [onScanResult]
-  );
+      setNotFoundCode(cleanCode);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Lookup failed';
+      setLookupError(msg || 'Lookup failed');
+    } finally {
+      lookingUpRef.current = false;
+      setLookupBusy(false);
+    }
+  }, []);
 
   const onDetectedCode = useCallback(
     (raw: string) => {
@@ -158,49 +199,68 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
     [handleBarcodeLookup]
   );
 
-  const startNativeLoop = useCallback(
-    (detector: BarcodeDetectorLike) => {
-      const tick = async () => {
-        const video = videoRef.current;
-        if (!video || video.readyState < 2) {
-          rafRef.current = requestAnimationFrame(tick);
-          return;
-        }
-        try {
-          const codes = await detector.detect(video);
-          if (codes?.[0]?.rawValue) onDetectedCode(codes[0].rawValue);
-        } catch {
-          /* frame miss */
-        }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-    },
-    [onDetectedCode]
-  );
+  const onDetectedCodeRef = useRef(onDetectedCode);
+  onDetectedCodeRef.current = onDetectedCode;
 
-  const startZxing = useCallback(
-    async (deviceId?: string) => {
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, ZXING_FORMATS);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 250 });
-      const controls = await reader.decodeFromVideoDevice(deviceId ?? undefined, videoRef.current!, (result) => {
-        if (result) onDetectedCode(result.getText());
-      });
-      zxingControlsRef.current = controls;
-    },
-    [onDetectedCode]
-  );
+  const startNativeLoop = useCallback((detector: BarcodeDetectorLike, session: number) => {
+    const tick = async () => {
+      if (session !== cameraSessionRef.current) return;
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      try {
+        const codes = await detector.detect(video);
+        if (session !== cameraSessionRef.current) return;
+        if (codes?.[0]?.rawValue) onDetectedCodeRef.current(codes[0].rawValue);
+      } catch {
+        /* frame miss */
+      }
+      if (session === cameraSessionRef.current) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const startZxing = useCallback(async (deviceId: string | undefined, session: number) => {
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, ZXING_FORMATS);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 250 });
+    const controls = await reader.decodeFromVideoDevice(deviceId ?? undefined, videoRef.current!, (result) => {
+      if (session !== cameraSessionRef.current) return;
+      if (result) onDetectedCodeRef.current(result.getText());
+    });
+    if (session !== cameraSessionRef.current) {
+      try {
+        controls.stop();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    zxingControlsRef.current = controls;
+  }, []);
 
   const startCamera = useCallback(async () => {
-    setErrorMessage(null);
-    setNotFoundCode(null);
+    // Invalidate any in-flight start, then tear down current media.
     stopCamera();
+    const session = cameraSessionRef.current;
+    setCameraError(null);
+    setNotFoundCode(null);
+
     try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        setHasPermission(false);
+        setCameraError('Camera needs HTTPS or localhost. Enter the barcode manually.');
+        return;
+      }
+
       if (!navigator.mediaDevices?.getUserMedia) {
         setHasPermission(false);
-        setErrorMessage('Camera access is not supported in this browser. Use manual barcode entry.');
+        setCameraError('Camera access is not supported in this browser. Use manual barcode entry.');
         return;
       }
 
@@ -212,55 +272,82 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
         },
         audio: false
       });
+
+      if (session !== cameraSessionRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
       streamRef.current = stream;
       const track = stream.getVideoTracks()[0];
       const caps = track?.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
       setTorchSupported(Boolean(caps?.torch));
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        try {
+          await video.play();
+        } catch (playErr) {
+          if (session !== cameraSessionRef.current) return;
+          // Stream replaced or play aborted by a newer load — ignore.
+          if (isBenignMediaError(playErr) || video.srcObject !== stream) {
+            return;
+          }
+          throw playErr;
+        }
+      }
+
+      if (session !== cameraSessionRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        if (streamRef.current === stream) streamRef.current = null;
+        return;
       }
 
       setHasPermission(true);
       setIsCameraActive(true);
       setIsScanning(true);
+      setCameraError(null);
 
       if (typeof window !== 'undefined' && window.BarcodeDetector) {
         try {
           const detector = new window.BarcodeDetector({ formats: DETECTOR_FORMATS });
+          if (session !== cameraSessionRef.current) return;
           setEngine('native');
-          startNativeLoop(detector);
+          startNativeLoop(detector, session);
           return;
         } catch {
           /* fall through to zxing */
         }
       }
 
+      if (session !== cameraSessionRef.current) return;
+
       setEngine('zxing');
       const deviceId = track?.getSettings?.().deviceId;
       // ZXing opens its own stream; release ours first to avoid double-cam
       stream.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      await startZxing(deviceId);
-    } catch (err: any) {
+      if (streamRef.current === stream) streamRef.current = null;
+      await startZxing(deviceId, session);
+    } catch (err: unknown) {
+      if (session !== cameraSessionRef.current) return;
+      if (isBenignMediaError(err)) return;
+
       console.warn('Camera start failed', err);
       setHasPermission(false);
-      const name = err?.name || '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setErrorMessage('Camera permission was denied. Allow camera access or enter the barcode manually.');
-      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        setErrorMessage('No camera was found on this device. Enter the barcode manually.');
-      } else {
-        setErrorMessage(err?.message || 'Could not start the camera. Enter the barcode manually.');
-      }
+      setIsCameraActive(false);
+      setIsScanning(false);
+      const msg = toUserFacingCameraError(err);
+      if (msg) setCameraError(msg);
     }
   }, [startNativeLoop, startZxing, stopCamera]);
 
+  // Mount once — do not restart when parent re-renders (avoids play() races).
   useEffect(() => {
     void startCamera();
     return () => stopCamera();
-  }, [startCamera, stopCamera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only camera lifecycle
+  }, []);
 
   const toggleTorch = async () => {
     const track =
@@ -272,9 +359,11 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
       await track.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] });
       setTorchOn(next);
     } catch {
-      setErrorMessage('Torch is not supported on this camera.');
+      setCameraError('Torch is not supported on this camera.');
     }
   };
+
+  const sidebarAlert = lookupError;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
@@ -293,7 +382,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
             </div>
             <h4 className="text-base font-bold">Barcode Scanner</h4>
             <p className="text-xs text-neutral-400">
-              {errorMessage || 'Point your camera at any EAN, UPC, Code-128/39, ITF, QR, or DataMatrix barcode.'}
+              {cameraError || 'Point your camera at any EAN, UPC, Code-128/39, ITF, QR, or DataMatrix barcode.'}
             </p>
             <button
               onClick={() => void startCamera()}
@@ -373,10 +462,10 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
           </div>
         </div>
 
-        {errorMessage && hasPermission !== false && (
+        {sidebarAlert && (
           <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3 flex gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{sidebarAlert}</span>
           </p>
         )}
 

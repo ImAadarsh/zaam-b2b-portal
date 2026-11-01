@@ -91,13 +91,52 @@ export const zaamApi = {
     return json.data;
   },
 
-  async getProducts(params?: { category?: string; search?: string }): Promise<Product[]> {
+  async getProducts(params?: {
+    category?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+    sort?: 'featured' | 'price-asc' | 'price-desc' | 'name';
+  }): Promise<{ data: Product[]; meta: { total: number; limit: number; offset: number; hasMore: boolean } }> {
     const query = new URLSearchParams();
     if (params?.category) query.set('category', params.category);
     if (params?.search) query.set('search', params.search);
+    if (params?.limit != null) query.set('limit', String(params.limit));
+    if (params?.offset != null) query.set('offset', String(params.offset));
+    if (params?.sort) query.set('sort', params.sort);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    const json = await request<{ data: Product[] }>(`/catalog/products${qs}`);
+    const json = await request<{ data: Product[]; meta?: { total: number; limit: number; offset: number; hasMore: boolean } }>(
+      `/catalog/products${qs}`
+    );
+    const data = json.data || [];
+    const meta = json.meta || {
+      total: data.length,
+      limit: params?.limit ?? data.length,
+      offset: params?.offset ?? 0,
+      hasMore: false
+    };
+    return { data, meta };
+  },
+
+  async getPopularCategories(): Promise<
+    { id: string; label: string; icon: string; catSlug: string; brandsSubtitle: string; sortOrder: number; active: boolean }[]
+  > {
+    const json = await request<{ data: any[] }>('/catalog/popular-categories');
     return json.data || [];
+  },
+
+  /** Walk pages for cart/reorder matching (not for shop UI). */
+  async getAllProducts(params?: { category?: string; search?: string }): Promise<Product[]> {
+    const all: Product[] = [];
+    let offset = 0;
+    const limit = 96;
+    for (let i = 0; i < 50; i++) {
+      const page = await this.getProducts({ ...params, limit, offset, sort: 'name' });
+      all.push(...page.data);
+      if (!page.meta.hasMore) break;
+      offset += page.data.length;
+    }
+    return all;
   },
 
   async getProductByBarcode(barcode: string): Promise<Product | null> {

@@ -73,7 +73,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshStock = useCallback(async () => {
     if (!getB2bAccessToken()) return;
     try {
-      const products = await zaamApi.getProducts();
+      const products = await zaamApi.getAllProducts();
       const fresh = new Map<string, ProductVariant>();
       for (const p of products) for (const v of p.variants) fresh.set(v.id, v);
       setCart(prev =>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+/* Fonts: Poppins via next/font in layout.tsx (display: swap, subset latin) */
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +7,7 @@
 :root {
   --background: #F8FAFC;
   --foreground: #0F172A;
-  --font-poppins: 'Poppins', 'Inter', system-ui, sans-serif;
+  --font-poppins: var(--font-zaam-sans, 'Poppins'), system-ui, -apple-system, sans-serif;
 }
 
 body {

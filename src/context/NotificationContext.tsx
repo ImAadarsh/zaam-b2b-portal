@@ -3,12 +3,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { NotificationItem } from '@/types';
 import { zaamApi, getB2bAccessToken } from '@/lib/api';
+import { ToastItem, ToastTone, ToastViewport } from '@/components/ui/ToastViewport';
 
-interface Toast {
-  id: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  message: string;
-}
+type Toast = ToastItem;
 
 interface NotificationContextType {
   notifications: NotificationItem[];
@@ -16,7 +13,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   refreshNotifications: () => Promise<void>;
-  showToast: (message: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  showToast: (message: string, type?: ToastTone) => void;
   toasts: Toast[];
   removeToast: (id: string) => void;
 }
@@ -64,21 +61,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const showToast = (message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
-    setToasts((prev) => {
-      // Deduplicate identical toasts already visible (avoids "Route not found" spam)
-      if (prev.some((t) => t.message === message && t.type === type)) {
-        return prev;
-      }
-      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      setTimeout(() => removeToast(id), 4000);
-      return [...prev, { id, type, message }];
-    });
-  };
-
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
+
+  const showToast = useCallback(
+    (message: string, type: ToastTone = 'success') => {
+      setToasts((prev) => {
+        // Deduplicate identical toasts already visible (avoids spam)
+        if (prev.some((t) => t.message === message && t.type === type)) {
+          return prev;
+        }
+        const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const duration = type === 'error' ? 6000 : 4000;
+        window.setTimeout(() => removeToast(id), duration);
+        return [...prev, { id, type, message }];
+      });
+    },
+    [removeToast]
+  );
 
   return (
     <NotificationContext.Provider
@@ -94,27 +95,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }}
     >
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`pointer-events-auto flex items-center justify-between p-3.5 rounded-xl shadow-soft-lg text-sm font-medium transition-all duration-300 ${
-              toast.type === 'success'
-                ? 'bg-zaam-green-600 text-white shadow-glow-green'
-                : toast.type === 'error'
-                  ? 'bg-rose-600 text-white'
-                  : toast.type === 'warning'
-                    ? 'bg-zaam-gold-500 text-zaam-dark-900 font-semibold'
-                    : 'bg-zaam-dark-800 text-white border border-neutral-700'
-            }`}
-          >
-            <span>{toast.message}</span>
-            <button onClick={() => removeToast(toast.id)} className="ml-3 text-white/80 hover:text-white p-1">
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
+      <ToastViewport toasts={toasts} onDismiss={removeToast} />
     </NotificationContext.Provider>
   );
 };

@@ -55,7 +55,7 @@ export function useReorder() {
     if (busy) return;
     setBusy(true);
     try {
-      const products = await zaamApi.getProducts();
+      const products = await zaamApi.getAllProducts();
       let itemsAdded = 0;
       const short: string[] = [];
       (order.items || []).forEach((item) => {

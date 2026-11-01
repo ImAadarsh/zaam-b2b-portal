@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { AuthShell } from "@/components/layout/AuthShell";
 import { AffiliateCapture } from "@/components/AffiliateCapture";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-zaam-sans",
+  preload: true
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001"),
@@ -28,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-slate-50 min-h-screen text-slate-900 flex flex-col selection:bg-zaam-green-600 selection:text-white">
+    <html lang="en" className={poppins.variable}>
+      <body className={`${poppins.className} antialiased bg-slate-50 min-h-screen text-slate-900 flex flex-col selection:bg-zaam-green-600 selection:text-white`}>
         <AuthProvider>
           <NotificationProvider>
             <CartProvider>

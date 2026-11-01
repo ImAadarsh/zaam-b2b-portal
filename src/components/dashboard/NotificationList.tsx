@@ -49,9 +49,18 @@ export const NotificationList: React.FC = () => {
       {/* List */}
       <div className="space-y-2.5">
         {notifications.length === 0 && (
-          <p className="text-xs text-neutral-500 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-3 py-4 text-center">
-            No live alerts yet. Price drops, delivery updates and promos from the B2B API will appear here.
-          </p>
+          <div className="text-center space-y-2 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-3 py-5">
+            <p className="text-xs font-semibold text-neutral-700">You&apos;re all caught up</p>
+            <p className="text-[11px] text-neutral-500 leading-relaxed">
+              Price drops, delivery updates, and trade promos will show here when available.
+            </p>
+            <Link
+              href="/shop"
+              className="inline-flex text-[11px] font-bold text-zaam-green-700 hover:text-zaam-green-800"
+            >
+              Browse deals in catalog →
+            </Link>
+          </div>
         )}
         {notifications.map((item) => (
           <div

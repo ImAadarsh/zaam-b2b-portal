@@ -220,8 +220,33 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-neutral-500">
-                  {hasFilters ? 'No orders match these filters.' : 'No B2B orders yet. Place your first wholesale order from the catalog.'}
+                <td colSpan={7} className="px-3 py-8 text-center">
+                  {hasFilters ? (
+                    <div className="space-y-2">
+                      <p className="text-neutral-600 font-medium">No orders match these filters.</p>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-bold text-zaam-green-700 hover:underline"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-w-sm mx-auto">
+                      <p className="text-neutral-800 font-semibold">No wholesale orders yet</p>
+                      <p className="text-neutral-500 text-[11px] leading-relaxed">
+                        Your first case order is the fastest way to see live pricing, credit, and delivery status here.
+                      </p>
+                      <Link
+                        href="/shop"
+                        className="inline-flex text-xs font-bold text-zaam-green-700 hover:text-zaam-green-800"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Order wholesale →
+                      </Link>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (

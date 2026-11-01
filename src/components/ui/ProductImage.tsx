@@ -91,6 +91,8 @@ export const ProductImage: React.FC<ProductImageProps> = ({
           src={source}
           alt={alt}
           loading="lazy"
+          decoding="async"
+          sizes="(max-width: 640px) 50vw, (max-width: 1280px) 20vw, 180px"
           onError={() => setFailed(true)}
           className={`h-full w-full ${fit === 'cover' ? 'object-cover' : 'object-contain'} ${imgClassName}`}
         />
