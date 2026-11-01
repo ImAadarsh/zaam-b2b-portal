@@ -42,7 +42,7 @@ export const WalletSummaryCard: React.FC = () => {
         {/* Big Balance Row */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between pt-1 gap-2">
           <div>
-            <span className="text-xs text-zaam-green-200 uppercase tracking-wider font-semibold">Available Credit Line</span>
+            <span className="text-xs text-zaam-green-200 uppercase tracking-wider font-semibold">You can spend now</span>
             <div className="flex items-baseline space-x-2">
               <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
                 £{availableCredit.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
@@ -54,8 +54,8 @@ export const WalletSummaryCard: React.FC = () => {
           </div>
 
           <div className="text-left sm:text-right text-xs text-zaam-green-200">
-            <p>Total Limit: <strong className="text-white">£{retailer.creditLimit.toLocaleString()}</strong></p>
-            <p>Current Invoiced: <strong className="text-white">£{retailer.creditUsed.toLocaleString()}</strong></p>
+            <p>Credit limit: <strong className="text-white">£{retailer.creditLimit.toLocaleString()}</strong></p>
+            <p>On invoices: <strong className="text-white">£{retailer.creditUsed.toLocaleString()}</strong></p>
           </div>
         </div>
 

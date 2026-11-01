@@ -216,7 +216,17 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-rose-600">{error}</td>
+                <td colSpan={7} className="px-3 py-8 text-center space-y-2">
+                  <p className="text-rose-600 font-medium">{error}</p>
+                  <p className="text-[11px] text-neutral-500">Check your connection, then try again.</p>
+                  <button
+                    type="button"
+                    onClick={() => setParams((p) => ({ ...p }))}
+                    className="inline-flex items-center justify-center min-h-[44px] px-4 text-xs font-bold text-zaam-green-700 hover:text-zaam-green-800 border border-zaam-green-200 bg-zaam-green-50 rounded-xl"
+                  >
+                    Retry loading orders
+                  </button>
+                </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
@@ -240,7 +250,7 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
                       </p>
                       <Link
                         href="/shop"
-                        className="inline-flex text-xs font-bold text-zaam-green-700 hover:text-zaam-green-800"
+                        className="inline-flex items-center justify-center min-h-[44px] px-4 text-xs font-bold text-white bg-zaam-green-600 hover:bg-zaam-green-700 rounded-xl"
                         onClick={(e) => e.stopPropagation()}
                       >
                         Order wholesale →
@@ -300,10 +310,10 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
               type="button"
               disabled={params.page <= 1 || loading}
               onClick={() => update({ page: params.page - 1 })}
-              className="p-1.5 rounded-lg border border-neutral-200 bg-white disabled:opacity-40"
+              className="min-w-[44px] min-h-[44px] p-2 rounded-xl border border-neutral-200 bg-white disabled:opacity-40"
               aria-label="Previous page"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 mx-auto" />
             </button>
             <span className="px-2">
               Page {params.page} of {pageCount}
@@ -312,10 +322,10 @@ export const OrdersTable: React.FC<Props> = ({ compact = false, compactRows = 5 
               type="button"
               disabled={params.page >= pageCount || loading}
               onClick={() => update({ page: params.page + 1 })}
-              className="p-1.5 rounded-lg border border-neutral-200 bg-white disabled:opacity-40"
+              className="min-w-[44px] min-h-[44px] p-2 rounded-xl border border-neutral-200 bg-white disabled:opacity-40"
               aria-label="Next page"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 mx-auto" />
             </button>
           </div>
         </div>

@@ -31,6 +31,19 @@ export const CategoryAccordion: React.FC<CategoryAccordionProps> = ({
     }));
   };
 
+  const activeLabel = (() => {
+    if (selectedCategory === 'all' && !selectedSubCategory) return 'All products';
+    const cat = categories.find((c) => c.id === selectedCategory);
+    if (!cat) return 'Filtered';
+    if (selectedSubCategory) {
+      const sub = (cat.subcategories || []).find(
+        (s) => s.slug === selectedSubCategory || s.id === selectedSubCategory
+      );
+      return sub?.name || cat.name;
+    }
+    return cat.name;
+  })();
+
   return (
     <div className="bg-white rounded-2xl shadow-soft-sm border border-neutral-200/80 flex flex-col overflow-hidden">
       {/* Header */}
@@ -38,22 +51,28 @@ export const CategoryAccordion: React.FC<CategoryAccordionProps> = ({
         <button
           type="button"
           onClick={() => setMobileOpen(open => !open)}
-          className="flex items-center space-x-2 min-w-0 lg:cursor-default"
+          className="flex items-center space-x-2 min-w-0 min-h-[44px] lg:min-h-0 lg:cursor-default"
           aria-expanded={mobileOpen}
         >
           <Layers className="w-4 h-4 text-zaam-green-600 flex-shrink-0" />
-          <h3 className="text-[11px] font-bold uppercase tracking-wide text-neutral-800 text-left leading-tight">
-            Wholesale Categories
-          </h3>
-          <span className="lg:hidden text-neutral-400">
-            {mobileOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          <div className="min-w-0 text-left">
+            <h3 className="text-[11px] font-bold uppercase tracking-wide text-neutral-800 leading-tight">
+              Wholesale Categories
+            </h3>
+            {/* Show active filter when accordion is collapsed on mobile */}
+            <p className="lg:hidden text-[11px] font-semibold text-zaam-green-700 truncate mt-0.5">
+              Showing: {activeLabel}
+            </p>
+          </div>
+          <span className="lg:hidden text-neutral-400 flex-shrink-0">
+            {mobileOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
         </button>
 
         <button
           onClick={() => onSelectCategory('all', '')}
-          className={`text-[11px] font-semibold px-2 py-1 rounded-md transition-colors flex-shrink-0 ${
-            selectedCategory === 'all'
+          className={`text-[11px] font-semibold min-h-[36px] px-2.5 py-1.5 rounded-md transition-colors flex-shrink-0 ${
+            selectedCategory === 'all' && !selectedSubCategory
               ? 'bg-zaam-green-600 text-white'
               : 'text-neutral-500 hover:text-neutral-900 bg-neutral-100'
           }`}

@@ -33,7 +33,8 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({ value, max, onChan
     onChange(next);
   };
 
-  const btn = size === 'sm' ? 'w-7 h-7' : 'w-8 h-8';
+  // 44px minimum tap targets — non-expert users on phones miss 28–32px controls.
+  const btn = size === 'sm' ? 'min-w-[40px] min-h-[40px] w-10 h-10' : 'min-w-[44px] min-h-[44px] w-11 h-11';
 
   return (
     <div className="flex items-center space-x-1.5 bg-white border border-neutral-300 rounded-xl p-1 shadow-xs">
@@ -62,7 +63,7 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({ value, max, onChan
         onKeyDown={(e) => {
           if (e.key === 'Enter') commit((e.target as HTMLInputElement).value);
         }}
-        className="w-12 text-center text-sm font-bold text-neutral-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:text-neutral-400"
+        className="w-14 min-h-[44px] text-center text-sm font-bold text-neutral-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:text-neutral-400"
         aria-label="Quantity"
       />
       <button

@@ -78,19 +78,20 @@ export const WalletBalance: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur">
-              <span className="text-xs text-neutral-400 font-medium">Available Credit</span>
+              <span className="text-xs text-neutral-400 font-medium">You can spend now</span>
               <p className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
                 £{availableCredit.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
               </p>
+              <span className="text-[10px] text-neutral-400 font-medium mt-1 block">Available credit for new orders</span>
             </div>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur">
-              <span className="text-xs text-neutral-400 font-medium">Used / Invoiced Balance</span>
+              <span className="text-xs text-neutral-400 font-medium">Already on invoices</span>
               <p className="text-2xl sm:text-3xl font-extrabold text-zaam-gold-400 mt-1">
                 £{retailer.creditUsed.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur">
-              <span className="text-xs text-neutral-400 font-medium">Total Credit Limit</span>
+              <span className="text-xs text-neutral-400 font-medium">Your total credit limit</span>
               <p className="text-2xl sm:text-3xl font-extrabold text-neutral-200 mt-1">
                 £{retailer.creditLimit.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
               </p>
@@ -98,29 +99,36 @@ export const WalletBalance: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2.5 pt-2 items-center">
-            <input
-              type="number"
-              className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs w-40"
-              placeholder="Requested limit"
-              value={requestedLimit}
-              onChange={(e) => setRequestedLimit(e.target.value)}
-            />
+          <div className="flex flex-wrap gap-2.5 pt-2 items-end">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
+                New limit request (above £{retailer.creditLimit.toLocaleString('en-GB')})
+              </span>
+              <input
+                type="number"
+                min={Math.ceil(retailer.creditLimit) + 1}
+                className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-xs w-44 min-h-[44px]"
+                placeholder={`e.g. ${Math.round(retailer.creditLimit * 1.25)}`}
+                value={requestedLimit}
+                onChange={(e) => setRequestedLimit(e.target.value)}
+                aria-label="Requested credit limit"
+              />
+            </label>
             <button
               disabled={!!busy}
               onClick={handleRequestIncrease}
-              className="flex items-center space-x-2 bg-zaam-gold-500 hover:bg-zaam-gold-600 text-zaam-dark-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-glow-gold btn-press transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center space-x-2 min-h-[44px] bg-zaam-gold-500 hover:bg-zaam-gold-600 text-zaam-dark-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-glow-gold btn-press transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {busy === 'credit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              <span>{busy === 'credit' ? 'Submitting…' : 'Request Limit Increase'}</span>
+              <span>{busy === 'credit' ? 'Submitting…' : 'Request higher limit'}</span>
             </button>
             <button
               disabled={!!busy}
               onClick={handleDownloadStatement}
-              className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-4 py-2.5 rounded-xl border border-white/15 backdrop-blur btn-press transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center space-x-2 min-h-[44px] bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-4 py-2.5 rounded-xl border border-white/15 backdrop-blur btn-press transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {busy === 'statement' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              <span>{busy === 'statement' ? 'Downloading…' : 'Download Statement (CSV)'}</span>
+              <span>{busy === 'statement' ? 'Downloading…' : 'Download statement'}</span>
             </button>
           </div>
         </div>

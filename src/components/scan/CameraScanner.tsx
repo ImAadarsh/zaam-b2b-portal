@@ -386,7 +386,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
             </p>
             <button
               onClick={() => void startCamera()}
-              className="bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-glow-green btn-press transition-all"
+              className="min-h-[44px] bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-glow-green btn-press transition-all"
             >
               Start Camera
             </button>
@@ -408,8 +408,13 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
           <span className="bg-black/60 backdrop-blur text-white text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10">
             <span className="w-2 h-2 rounded-full bg-zaam-green-400 animate-ping" />
-            {engine === 'native' ? 'BarcodeDetector' : engine === 'zxing' ? 'ZXing fallback' : 'Starting…'}
-            {lookupBusy ? ' · Looking up…' : ''}
+            {lookupBusy
+              ? 'Looking up product…'
+              : isScanning
+                ? 'Point at barcode'
+                : engine
+                  ? 'Camera ready'
+                  : 'Starting camera…'}
           </span>
 
           <div className="flex items-center space-x-2">
@@ -454,10 +459,10 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
             </div>
             <button
               onClick={() => void handleBarcodeLookup(manualBarcode)}
-              disabled={lookupBusy}
-              className="bg-zaam-dark-900 hover:bg-zaam-dark-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl btn-press disabled:opacity-50"
+              disabled={lookupBusy || !manualBarcode.trim()}
+              className="min-h-[44px] bg-zaam-dark-900 hover:bg-zaam-dark-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl btn-press disabled:opacity-50"
             >
-              Lookup
+              {lookupBusy ? 'Looking up…' : 'Lookup'}
             </button>
           </div>
         </div>
@@ -487,8 +492,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onScanResult }) =>
         )}
 
         <p className="text-[11px] text-neutral-400 pt-2 border-t border-neutral-100">
-          Supported: EAN-13, EAN-8, UPC-A, UPC-E, Code-128, Code-39, ITF, QR, DataMatrix. Uses the browser BarcodeDetector
-          API when available, otherwise ZXing.
+          Tip: hold the barcode steady in good light. If the camera fails, type the digits above and tap Lookup.
         </p>
       </div>
     </div>

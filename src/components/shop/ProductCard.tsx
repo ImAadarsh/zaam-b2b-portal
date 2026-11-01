@@ -98,16 +98,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
           )}
         </div>
 
-        {/* Quick View Button */}
+        {/* Quick View — always visible on touch (hover-only hid it on phones) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onOpenDetail?.(product, currentVariant);
           }}
-          className="absolute bottom-1.5 right-1.5 p-1.5 bg-white/90 hover:bg-white text-neutral-700 hover:text-zaam-green-600 rounded-lg shadow-md backdrop-blur opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          className="absolute bottom-1.5 right-1.5 min-w-[40px] min-h-[40px] p-2 bg-white/95 hover:bg-white text-neutral-700 hover:text-zaam-green-600 rounded-lg shadow-md backdrop-blur opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity"
           title="View product specifications"
+          aria-label="View product details"
         >
-          <Eye className="w-3.5 h-3.5" />
+          <Eye className="w-4 h-4" />
         </button>
       </div>
 
@@ -181,7 +182,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
             <button
               onClick={handleAdd}
               disabled={maxQty <= 0}
-              className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-semibold text-[11px] py-2 px-2 rounded-lg flex items-center justify-center space-x-1 shadow-sm btn-press transition-colors"
+              className="w-full min-h-[44px] bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-semibold text-[11px] py-2.5 px-2 rounded-lg flex items-center justify-center space-x-1 shadow-sm btn-press transition-colors"
             >
               {maxQty <= 0 ? (
                 <span>Out of stock</span>
@@ -194,13 +195,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
             </button>
           ) : (
             <>
-              <div className={`flex items-center justify-between rounded-lg p-0.5 border ${overStock ? 'bg-rose-50 border-rose-200' : 'bg-zaam-green-50 border-zaam-green-200'}`}>
+              <div className={`flex items-center justify-between rounded-xl p-0.5 border ${overStock ? 'bg-rose-50 border-rose-200' : 'bg-zaam-green-50 border-zaam-green-200'}`}>
                 <button
                   onClick={handleDecrement}
-                  className="w-7 h-7 flex items-center justify-center rounded-md bg-white text-neutral-800 hover:bg-neutral-100 shadow-xs"
+                  className="min-w-[40px] min-h-[40px] w-10 h-10 flex items-center justify-center rounded-lg bg-white text-neutral-800 hover:bg-neutral-100 shadow-xs"
                   aria-label="Decrease quantity"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <Minus className="w-4 h-4" />
                 </button>
                 <div className="text-center px-1 min-w-0">
                   <span className="text-[11px] font-extrabold text-zaam-green-800 block leading-tight">
@@ -215,11 +216,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetail 
                 <button
                   onClick={handleIncrement}
                   disabled={atLimit}
-                  className="w-7 h-7 flex items-center justify-center rounded-md bg-zaam-green-600 text-white hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:cursor-not-allowed shadow-xs"
+                  className="min-w-[40px] min-h-[40px] w-10 h-10 flex items-center justify-center rounded-lg bg-zaam-green-600 text-white hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:cursor-not-allowed shadow-xs"
                   aria-label="Increase quantity"
                   title={atLimit ? getAvailabilityMessage(currentVariant) : undefined}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
               {atLimit && (

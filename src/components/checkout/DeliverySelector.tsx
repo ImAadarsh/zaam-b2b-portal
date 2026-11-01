@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Truck } from 'lucide-react';
 
 export interface DeliveryOption {
@@ -29,15 +30,22 @@ export const DeliverySelector: React.FC<DeliverySelectorProps> = ({ options, sel
           </div>
           <div>
             <h3 className="text-sm font-bold text-neutral-900">Delivery & Fulfillment Method</h3>
-            <p className="text-[11px] text-neutral-500">Options from ERP B2B shipping methods</p>
+            <p className="text-[11px] text-neutral-500">Pick how this order should be delivered</p>
           </div>
         </div>
       </div>
 
       {options.length === 0 ? (
-        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
-          No shipping options returned from the API. Ask staff to configure B2B shipping methods in the panel.
-        </p>
+        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1.5">
+          <p className="font-semibold">No delivery methods available yet</p>
+          <p>
+            You can still build a basket — contact your Zaam account manager so they can turn on shipping options for
+            your trade account.
+          </p>
+          <Link href="/account/support" className="inline-flex font-bold text-zaam-green-800 hover:underline">
+            Contact support →
+          </Link>
+        </div>
       ) : (
         <div className="space-y-2.5">
           {options.map((opt) => {

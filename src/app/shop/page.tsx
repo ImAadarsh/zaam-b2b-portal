@@ -143,11 +143,11 @@ function ShopContent() {
                 Wholesale Product Catalog
               </h1>
               <span className="text-xs bg-zaam-gold-500/20 text-zaam-gold-700 font-bold px-2 py-0.5 rounded-full">
-                Tier Pricing Active
+                Volume discounts apply
               </span>
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Browse wholesale cases, pallet quantities, and manufacturer deals.
+              Search by brand or barcode, pick a category, then add cases to your basket.
             </p>
             {catalogError && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -168,9 +168,6 @@ function ShopContent() {
             aria-live="polite"
           >
             {progressLabel}
-            {total > 0 && (
-              <span className="text-neutral-400"> · page size {PAGE_SIZE}</span>
-            )}
           </div>
         </div>
 
@@ -195,7 +192,7 @@ function ShopContent() {
               className="w-full pl-10 pr-4 py-2.5 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-zaam-green-600 focus:bg-white appearance-none cursor-pointer font-medium text-neutral-700"
               aria-label="Sort products"
             >
-              <option value="featured">Sort by: Top Featured & Margin</option>
+              <option value="featured">Sort by: Featured first</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
               <option value="name">Alphabetical (A-Z)</option>

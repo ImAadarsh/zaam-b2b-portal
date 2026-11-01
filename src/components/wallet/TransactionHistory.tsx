@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ArrowDownLeft, ArrowUpRight, FileText } from 'lucide-react';
 import { zaamApi } from '@/lib/api';
 import { useNotifications } from '@/context/NotificationContext';
@@ -32,7 +33,18 @@ export const TransactionHistory: React.FC = () => {
       {loading ? (
         <p className="text-xs text-neutral-500">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-neutral-500">No ledger entries yet.</p>
+        <div className="text-center space-y-2 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-3 py-6">
+          <p className="text-xs font-semibold text-neutral-800">No invoices or payments yet</p>
+          <p className="text-[11px] text-neutral-500 max-w-sm mx-auto leading-relaxed">
+            Once you place a wholesale order, invoices and credit movements will appear here automatically.
+          </p>
+          <Link
+            href="/shop"
+            className="inline-flex items-center justify-center min-h-[44px] px-4 text-xs font-bold text-zaam-green-700 hover:text-zaam-green-800"
+          >
+            Place your first order →
+          </Link>
+        </div>
       ) : (
         <div className="space-y-2.5">
           {rows.map((tx) => (

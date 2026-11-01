@@ -91,13 +91,22 @@ export const CartDrawer: React.FC = () => {
                 <p className="text-xs text-neutral-500 max-w-xs">
                   Browse the wholesale catalog or use the barcode scanner to add cases to your order.
                 </p>
-                <Link
-                  href="/shop"
-                  onClick={() => setIsCartDrawerOpen(false)}
-                  className="mt-2 inline-flex bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
-                >
-                  Browse Catalog
-                </Link>
+                <div className="mt-2 flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-xs">
+                  <Link
+                    href="/shop"
+                    onClick={() => setIsCartDrawerOpen(false)}
+                    className="inline-flex items-center justify-center min-h-[44px] bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
+                  >
+                    Browse Catalog
+                  </Link>
+                  <Link
+                    href="/scan"
+                    onClick={() => setIsCartDrawerOpen(false)}
+                    className="inline-flex items-center justify-center min-h-[44px] bg-white hover:bg-neutral-50 text-neutral-800 text-xs font-semibold px-4 py-2.5 rounded-xl border border-neutral-200 transition-colors"
+                  >
+                    Scan barcode
+                  </Link>
+                </div>
               </div>
             ) : (
               cart.map((item) => {
@@ -140,15 +149,16 @@ export const CartDrawer: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center space-x-1.5 bg-neutral-100 rounded-lg p-0.5 border border-neutral-200">
+                      {/* Quantity Controls — 44px taps for mobile cashiers */}
+                      <div className="flex items-center space-x-1 bg-neutral-100 rounded-xl p-0.5 border border-neutral-200">
                         <button
                           onClick={() => updateQuantity(item.variant.id, item.quantity - 1)}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-white text-neutral-700 hover:bg-neutral-200 text-xs font-bold"
+                          className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-lg bg-white text-neutral-700 hover:bg-neutral-200 text-xs font-bold"
+                          aria-label="Decrease quantity"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-4 h-4" />
                         </button>
-                        <span className="text-xs font-bold px-1.5 text-neutral-900 min-w-[20px] text-center">
+                        <span className="text-xs font-bold px-2 text-neutral-900 min-w-[28px] text-center tabular-nums">
                           {item.quantity}
                         </span>
                         <button
@@ -158,10 +168,10 @@ export const CartDrawer: React.FC = () => {
                           }}
                           disabled={atLimit}
                           title={atLimit ? getAvailabilityMessage(item.variant) : undefined}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-white text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold"
+                          className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-lg bg-white text-neutral-700 hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold"
                           aria-label="Increase quantity"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

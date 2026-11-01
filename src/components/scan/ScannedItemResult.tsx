@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
 import { Product, ProductVariant } from '@/types';
 import { useCart } from '@/context/CartContext';
@@ -127,28 +128,54 @@ export const ScannedItemResult: React.FC<ScannedItemResultProps> = ({
           </div>
 
           {/* Price & Action */}
-          <div className="pt-3 border-t border-neutral-100 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-neutral-400">Total (ex. VAT):</span>
-              <p className="text-base font-extrabold text-zaam-dark-900">
-                £{(variant.casePrice * quantity).toFixed(2)}
-              </p>
-            </div>
+          <div className="pt-3 border-t border-neutral-100 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[11px] text-neutral-400">Total (ex. VAT):</span>
+                <p className="text-base font-extrabold text-zaam-dark-900">
+                  £{(variant.casePrice * quantity).toFixed(2)}
+                </p>
+              </div>
 
-            <button
-              onClick={handleAdd}
-              disabled={addable <= 0}
-              className="bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:shadow-none disabled:cursor-not-allowed text-white text-xs font-bold py-3 px-5 rounded-xl shadow-glow-green flex items-center space-x-1.5 btn-press"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>
-                {getMaxOrderQty(variant) <= 0
-                  ? 'Out of stock'
-                  : addable <= 0
-                    ? 'All available stock in basket'
-                    : `Add ${formatSaleQty(quantity, variant)}`}
-              </span>
-            </button>
+              <button
+                onClick={handleAdd}
+                disabled={addable <= 0}
+                className="min-h-[44px] bg-zaam-green-600 hover:bg-zaam-green-700 disabled:bg-neutral-300 disabled:shadow-none disabled:cursor-not-allowed text-white text-xs font-bold py-3 px-5 rounded-xl shadow-glow-green flex items-center space-x-1.5 btn-press"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>
+                  {getMaxOrderQty(variant) <= 0
+                    ? 'Out of stock'
+                    : addable <= 0
+                      ? 'All available stock in basket'
+                      : `Add ${formatSaleQty(quantity, variant)}`}
+                </span>
+              </button>
+            </div>
+            {getMaxOrderQty(variant) <= 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left space-y-1">
+                <p className="text-[11px] text-amber-900 font-semibold">This item has no stock to order right now.</p>
+                <Link
+                  href={`/shop?search=${encodeURIComponent(product.brand || product.name)}`}
+                  onClick={onClose}
+                  className="inline-flex text-[11px] font-bold text-zaam-green-800 hover:underline"
+                >
+                  Browse similar in catalog →
+                </Link>
+              </div>
+            )}
+            {getMaxOrderQty(variant) > 0 && addable <= 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  setIsCartDrawerOpen(true);
+                }}
+                className="text-[11px] font-bold text-zaam-green-700 hover:underline text-left"
+              >
+                Open basket to review quantities →
+              </button>
+            )}
           </div>
         </div>
 

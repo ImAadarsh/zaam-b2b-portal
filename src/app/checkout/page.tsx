@@ -249,11 +249,23 @@ export default function CheckoutPage() {
             )}
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
-            <Link href="/" className="w-full sm:w-auto bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-bold py-3 px-6 rounded-xl shadow-glow-green">
-              Return to Dashboard
+            <Link
+              href={`/orders/${completedOrder.id}`}
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-bold py-3 px-6 rounded-xl shadow-glow-green"
+            >
+              View this order
             </Link>
-            <Link href="/shop" className="w-full sm:w-auto bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold py-3 px-6 rounded-xl">
-              Continue Shopping
+            <Link
+              href="/shop"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold py-3 px-6 rounded-xl"
+            >
+              Continue shopping
+            </Link>
+            <Link
+              href="/"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center text-xs font-semibold text-neutral-600 hover:text-zaam-green-700 py-3 px-2"
+            >
+              Dashboard
             </Link>
           </div>
         </div>
@@ -337,9 +349,15 @@ export default function CheckoutPage() {
                     This order (£{payableTotal.toFixed(2)} inc. delivery) will be invoiced to your {retailer?.companyName} trade account.
                   </p>
                   {payableTotal > availableCredit && (
-                    <p className="text-xs text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
-                      Available credit is short by £{(payableTotal - availableCredit).toFixed(2)}. Choose another payment method or request a higher limit in Wallet.
-                    </p>
+                    <div className="text-xs text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 space-y-1.5">
+                      <p>
+                        You need £{(payableTotal - availableCredit).toFixed(2)} more credit for this order.
+                        Choose Pay by Bank / Card, or request a higher limit.
+                      </p>
+                      <Link href="/wallet" className="inline-flex font-bold text-zaam-green-800 hover:underline">
+                        Open Wallet to request a higher limit →
+                      </Link>
+                    </div>
                   )}
                 </div>
               )}
@@ -381,44 +399,67 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={fixStockIssues}
-                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg"
+                  className="w-full min-h-[44px] bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 rounded-lg"
                 >
                   Update basket to available stock
                 </button>
               </div>
             )}
-            <button
-              onClick={handleProcessOrder}
-              disabled={
-                isProcessing ||
+            {(() => {
+              const authorizeBlocked =
                 !selectedDelivery ||
                 !selectedBranchId ||
                 stockIssues.length > 0 ||
-                (paymentMethod === 'credit' && payableTotal > availableCredit)
-              }
-              className={`w-full font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${
-                isProcessing ||
-                !selectedDelivery ||
-                !selectedBranchId ||
-                stockIssues.length > 0 ||
-                (paymentMethod === 'credit' && payableTotal > availableCredit)
-                  ? 'bg-neutral-400 text-white cursor-not-allowed'
-                  : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'
-              }`}
-            >
-              {isProcessing ? (
+                (paymentMethod === 'credit' && payableTotal > availableCredit);
+              const blockReason = !selectedBranchId
+                ? 'Select a delivery branch in the header (or Account → Branches) before placing the order.'
+                : !selectedDelivery
+                  ? 'Choose a delivery method above.'
+                  : stockIssues.length > 0
+                    ? 'Fix basket stock quantities first.'
+                    : paymentMethod === 'credit' && payableTotal > availableCredit
+                      ? `Trade credit shortfall of £${(payableTotal - availableCredit).toFixed(2)} — switch payment method or raise your limit.`
+                      : null;
+              return (
                 <>
-                  <RotateCcw className="w-4 h-4 animate-spin" />
-                  <span>Placing order…</span>
+                  {authorizeBlocked && blockReason && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
+                      {blockReason}
+                      {!selectedBranchId && (
+                        <>
+                          {' '}
+                          <Link href="/account?panel=branches" className="font-bold text-zaam-green-800 hover:underline">
+                            Set branch
+                          </Link>
+                        </>
+                      )}
+                    </p>
+                  )}
+                  <button
+                    onClick={handleProcessOrder}
+                    disabled={isProcessing || authorizeBlocked}
+                    className={`w-full min-h-[48px] font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${
+                      isProcessing || authorizeBlocked
+                        ? 'bg-neutral-400 text-white cursor-not-allowed'
+                        : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'
+                    }`}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <RotateCcw className="w-4 h-4 animate-spin" />
+                        <span>Placing order…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Place order · £{payableTotal.toFixed(2)}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
                 </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>Authorize £{payableTotal.toFixed(2)}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+              );
+            })()}
             <p className="text-[11px] text-center text-neutral-400 leading-tight">
               By confirming, you authorize delivery to <strong>{retailer?.tradingName}</strong> under your trade agreement.
             </p>
