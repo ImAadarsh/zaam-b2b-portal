@@ -105,10 +105,41 @@ export default function CheckoutPage() {
       showToast('Some basket quantities are above available stock. Update your basket first.', 'error');
       return;
     }
+    if (!selectedDelivery) {
+      showToast('Choose a delivery method before placing your order.', 'error');
+      return;
+    }
+    if (!selectedBranchId) {
+      showToast('Select a delivery branch in the header (or Account → Branches) before checkout.', 'error');
+      return;
+    }
+
+    // Validate payment inputs BEFORE creating an ERP order (avoids orphan unpaid orders).
+    if (paymentMethod === 'card') {
+      const number = cardDetails.cardNumber.replace(/\s+/g, '');
+      if (!number || !cardDetails.expiry.trim() || !cardDetails.cvv.trim()) {
+        showToast('Enter card number, expiry, and CVV before authorizing payment.', 'error');
+        return;
+      }
+    }
+
+    const deliveryObj = deliveryOptions.find((d) => d.id === selectedDelivery || d.code === selectedDelivery);
+    const shipExVatPreview = appliedCoupon?.freeShipping ? 0 : Number(deliveryObj?.price || 0);
+    const shipVatPreview = shipExVatPreview > 0 ? shipExVatPreview * 0.2 : 0;
+    const couponDiscountPreview = Number(appliedCoupon?.discountAmount || 0);
+    const payablePreview = Math.max(0, totalAmount + shipExVatPreview + shipVatPreview - couponDiscountPreview);
+
+    if (paymentMethod === 'credit' && payablePreview > availableCredit) {
+      showToast(
+        `Trade credit available is £${availableCredit.toFixed(2)}; this order needs £${payablePreview.toFixed(2)}. Choose another payment method or request a higher limit.`,
+        'error'
+      );
+      return;
+    }
+
     setIsProcessing(true);
     setPendingNotice(null);
     try {
-      const deliveryObj = deliveryOptions.find((d) => d.id === selectedDelivery || d.code === selectedDelivery);
       const aff = getAffiliateAttribution();
       const { order } = await zaamApi.createOrder({
         lines: cart.map((i) => ({ variantId: i.variant.id, quantity: i.quantity })),
@@ -128,9 +159,6 @@ export default function CheckoutPage() {
         await refreshProfile();
         showToast(`Order ${paidOrder.orderNumber} authorized on trade credit`, 'success');
       } else if (paymentMethod === 'card') {
-        if (!cardDetails.cardNumber || !cardDetails.expiry || !cardDetails.cvv) {
-          throw new Error('Enter card number, expiry, and CVV for Worldpay card payment');
-        }
         const result = await zaamApi.payIntent(order.id, 'card', { cardDetails });
         paidOrder = result.order;
         setCompletedOrder({
@@ -306,8 +334,13 @@ export default function CheckoutPage() {
                     <span className="text-sm font-extrabold text-zaam-dark-900">£{availableCredit.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-neutral-600">
-                    This order (£{totalAmount.toFixed(2)}) will be invoiced to your {retailer?.companyName} trade account.
+                    This order (£{payableTotal.toFixed(2)} inc. delivery) will be invoiced to your {retailer?.companyName} trade account.
                   </p>
+                  {payableTotal > availableCredit && (
+                    <p className="text-xs text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                      Available credit is short by £{(payableTotal - availableCredit).toFixed(2)}. Choose another payment method or request a higher limit in Wallet.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -356,8 +389,22 @@ export default function CheckoutPage() {
             )}
             <button
               onClick={handleProcessOrder}
-              disabled={isProcessing || !selectedDelivery || stockIssues.length > 0}
-              className={`w-full font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${isProcessing || !selectedDelivery || stockIssues.length > 0 ? 'bg-neutral-400 text-white cursor-not-allowed' : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'}`}
+              disabled={
+                isProcessing ||
+                !selectedDelivery ||
+                !selectedBranchId ||
+                stockIssues.length > 0 ||
+                (paymentMethod === 'credit' && payableTotal > availableCredit)
+              }
+              className={`w-full font-bold text-sm py-4 px-5 rounded-2xl flex items-center justify-center space-x-2 shadow-glow-green btn-press transition-all ${
+                isProcessing ||
+                !selectedDelivery ||
+                !selectedBranchId ||
+                stockIssues.length > 0 ||
+                (paymentMethod === 'credit' && payableTotal > availableCredit)
+                  ? 'bg-neutral-400 text-white cursor-not-allowed'
+                  : 'bg-zaam-green-600 hover:bg-zaam-green-700 text-white'
+              }`}
             >
               {isProcessing ? (
                 <>

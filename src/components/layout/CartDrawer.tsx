@@ -91,12 +91,13 @@ export const CartDrawer: React.FC = () => {
                 <p className="text-xs text-neutral-500 max-w-xs">
                   Browse the wholesale catalog or use the barcode scanner to add cases to your order.
                 </p>
-                <button
+                <Link
+                  href="/shop"
                   onClick={() => setIsCartDrawerOpen(false)}
-                  className="mt-2 bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
+                  className="mt-2 inline-flex bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
                 >
                   Browse Catalog
-                </button>
+                </Link>
               </div>
             ) : (
               cart.map((item) => {

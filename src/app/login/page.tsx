@@ -15,7 +15,7 @@ const NEXT_STEPS = [
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isReady } = useAuth();
-  const [email, setEmail] = useState('retailer@zaam.co.uk');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

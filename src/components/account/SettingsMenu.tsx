@@ -28,7 +28,7 @@ function validateBranchForm(form: { addressLine1: string; city: string; postalCo
 
 export const SettingsMenu: React.FC = () => {
   const router = useRouter();
-  const { retailer, logout, refreshProfile, refreshBranches } = useAuth();
+  const { retailer, logout, refreshProfile, refreshBranches, selectedBranchId, setSelectedBranchId } = useAuth();
   const { showToast } = useNotifications();
   const [panel, setPanel] = useState<Panel>(null);
   const [branches, setBranches] = useState<any[]>([]);
@@ -190,8 +190,24 @@ export const SettingsMenu: React.FC = () => {
 
             {panel === 'profile' && (
               <div className="space-y-2">
-                {(['companyName', 'firstName', 'lastName', 'phone', 'taxId'] as const).map((k) => (
-                  <input key={k} className="w-full border rounded-xl px-3 py-2 text-xs" placeholder={k} value={(profileForm as any)[k]} onChange={(e) => setProfileForm({ ...profileForm, [k]: e.target.value })} />
+                {(
+                  [
+                    { key: 'companyName', label: 'Company name' },
+                    { key: 'firstName', label: 'First name' },
+                    { key: 'lastName', label: 'Last name' },
+                    { key: 'phone', label: 'Phone' },
+                    { key: 'taxId', label: 'VAT / tax ID' }
+                  ] as const
+                ).map(({ key, label }) => (
+                  <label key={key} className="block text-[11px] font-semibold text-neutral-600">
+                    {label}
+                    <input
+                      className="mt-1 w-full border rounded-xl px-3 py-2 text-xs"
+                      placeholder={label}
+                      value={profileForm[key]}
+                      onChange={(e) => setProfileForm({ ...profileForm, [key]: e.target.value })}
+                    />
+                  </label>
                 ))}
                 <AsyncButton
                   loading={busyKey === 'profile'}
@@ -217,33 +233,66 @@ export const SettingsMenu: React.FC = () => {
 
             {panel === 'branches' && (
               <div className="space-y-3">
-                {branches.map((b) => (
-                  <div key={b.id} className="border rounded-xl p-3 text-xs flex justify-between gap-2">
-                    <div>
-                      <div className="font-bold">{b.company || b.addressLine1}</div>
-                      <div className="text-neutral-500">{b.addressLine1}, {b.city} {b.postalCode}</div>
+                {branches.length === 0 && (
+                  <p className="text-xs text-neutral-500 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-3 py-3">
+                    No delivery branches yet. Add one below — new orders ship to your active branch.
+                  </p>
+                )}
+                {branches.map((b) => {
+                  const isActive = String(b.id) === String(selectedBranchId);
+                  const isBilling = b.addressType === 'billing';
+                  return (
+                  <div key={b.id} className={`border rounded-xl p-3 text-xs space-y-2 ${isActive ? 'border-zaam-green-500 bg-zaam-green-50/40' : ''}`}>
+                    <div className="flex justify-between gap-2">
+                      <div>
+                        <div className="font-bold flex items-center gap-1.5">
+                          {b.company || b.addressLine1}
+                          {isActive && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zaam-green-700 bg-zaam-green-100 px-1.5 py-0.5 rounded-full">
+                              Active delivery
+                            </span>
+                          )}
+                          {isBilling && (
+                            <span className="text-[10px] font-semibold text-neutral-500">Billing</span>
+                          )}
+                        </div>
+                        <div className="text-neutral-500">{b.addressLine1}, {b.city} {b.postalCode}</div>
+                      </div>
+                      <AsyncButton
+                        loading={busyKey === `del-branch-${b.id}`}
+                        loadingText="Deleting…"
+                        className="text-rose-600 text-xs font-semibold bg-transparent self-start"
+                        onClick={() =>
+                          runBusy(`del-branch-${b.id}`, async () => {
+                            try {
+                              await zaamApi.deleteBranch(b.id);
+                              setBranches(await zaamApi.getBranches());
+                              await refreshBranches();
+                              showToast('Branch removed', 'success');
+                            } catch (e: any) {
+                              showToast(e.message || 'Failed to delete branch', 'error');
+                            }
+                          })
+                        }
+                      >
+                        Delete
+                      </AsyncButton>
                     </div>
-                    <AsyncButton
-                      loading={busyKey === `del-branch-${b.id}`}
-                      loadingText="Deleting…"
-                      className="text-rose-600 text-xs font-semibold bg-transparent"
-                      onClick={() =>
-                        runBusy(`del-branch-${b.id}`, async () => {
-                          try {
-                            await zaamApi.deleteBranch(b.id);
-                            setBranches(await zaamApi.getBranches());
-                            await refreshBranches();
-                            showToast('Branch removed', 'success');
-                          } catch (e: any) {
-                            showToast(e.message || 'Failed to delete branch', 'error');
-                          }
-                        })
-                      }
-                    >
-                      Delete
-                    </AsyncButton>
+                    {!isBilling && !isActive && (
+                      <button
+                        type="button"
+                        className="w-full text-xs font-bold text-zaam-green-800 bg-white border border-zaam-green-200 hover:bg-zaam-green-50 py-2 rounded-lg"
+                        onClick={() => {
+                          setSelectedBranchId(String(b.id));
+                          showToast(`Deliveries will go to ${[b.addressLine1, b.city].filter(Boolean).join(', ')}`, 'success');
+                        }}
+                      >
+                        Use for delivery
+                      </button>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
                 <div className="grid gap-2">
                   <input className="border rounded-xl px-3 py-2 text-xs" placeholder="Branch / store name (optional)" value={branchForm.company} onChange={(e) => setBranchForm({ ...branchForm, company: e.target.value })} />
                   <input className="border rounded-xl px-3 py-2 text-xs" placeholder="Address line 1" value={branchForm.addressLine1} onChange={(e) => setBranchForm({ ...branchForm, addressLine1: e.target.value })} />
