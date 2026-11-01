@@ -13,7 +13,7 @@ const money = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = String(params?.id || '');
-  const reorder = useReorder();
+  const { reorder, busy: reorderBusy } = useReorder();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,10 +79,11 @@ export default function OrderDetailPage() {
         {order.items.length > 0 && (
           <button
             onClick={() => reorder(order)}
-            className="flex items-center space-x-1.5 bg-zaam-green-600 hover:bg-zaam-green-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-glow-green btn-press self-start sm:self-auto"
+            disabled={reorderBusy}
+            className="flex items-center space-x-1.5 bg-zaam-green-600 hover:bg-zaam-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-glow-green btn-press self-start sm:self-auto"
           >
-            <RotateCw className="w-4 h-4" />
-            <span>Re-Order to basket</span>
+            {reorderBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}
+            <span>{reorderBusy ? 'Adding…' : 'Re-Order to basket'}</span>
           </button>
         )}
       </div>

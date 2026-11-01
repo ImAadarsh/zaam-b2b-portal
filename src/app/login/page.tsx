@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 
 export default function LoginPage() {
@@ -49,8 +49,13 @@ export default function LoginPage() {
         <label className="block text-xs font-semibold text-neutral-600">Password
           <input className="mt-1 w-full border border-neutral-200 rounded-xl px-3 py-2.5 text-sm" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
-        <button disabled={busy} className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-          <Lock className="w-4 h-4" />
+        <button
+          type="submit"
+          disabled={busy}
+          aria-busy={busy || undefined}
+          className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>

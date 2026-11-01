@@ -362,7 +362,7 @@ export default function CheckoutPage() {
               {isProcessing ? (
                 <>
                   <RotateCcw className="w-4 h-4 animate-spin" />
-                  <span>Authorizing Settlement...</span>
+                  <span>Placing order…</span>
                 </>
               ) : (
                 <>

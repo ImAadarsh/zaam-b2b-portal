@@ -48,6 +48,11 @@ export const NotificationList: React.FC = () => {
 
       {/* List */}
       <div className="space-y-2.5">
+        {notifications.length === 0 && (
+          <p className="text-xs text-neutral-500 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl px-3 py-4 text-center">
+            No live alerts yet. Price drops, delivery updates and promos from the B2B API will appear here.
+          </p>
+        )}
         {notifications.map((item) => (
           <div
             key={item.id}

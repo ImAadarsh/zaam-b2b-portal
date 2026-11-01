@@ -135,7 +135,13 @@ export const OrderSummary: React.FC<Props> = ({
               disabled={applying || !code.trim()}
               className="px-3 py-2.5 rounded-xl bg-neutral-900 text-white text-xs font-bold disabled:opacity-50"
             >
-              {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
+              {applying ? (
+                <span className="inline-flex items-center gap-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Applying…
+                </span>
+              ) : (
+                'Apply'
+              )}
             </button>
           </div>
           {appliedCoupon && (

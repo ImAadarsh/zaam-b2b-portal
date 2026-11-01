@@ -49,8 +49,11 @@ export function formatOrderDate(order: Pick<Order, 'date' | 'orderDate'>) {
 export function useReorder() {
   const { addToCart, getItemQuantity, setIsCartDrawerOpen } = useCart();
   const { showToast } = useNotifications();
+  const [busy, setBusy] = React.useState(false);
 
-  return async (order: Pick<Order, 'orderNumber' | 'items'>) => {
+  const reorder = async (order: Pick<Order, 'orderNumber' | 'items'>) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const products = await zaamApi.getProducts();
       let itemsAdded = 0;
@@ -79,6 +82,10 @@ export function useReorder() {
       setIsCartDrawerOpen(true);
     } catch (e: any) {
       showToast(e.message || 'Re-order failed', 'error');
+    } finally {
+      setBusy(false);
     }
   };
+
+  return { reorder, busy };
 }

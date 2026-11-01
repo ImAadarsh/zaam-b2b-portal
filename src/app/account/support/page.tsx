@@ -356,7 +356,7 @@ export default function SupportPage() {
             className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 disabled:opacity-60 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Submit ticket
+            {submitting ? 'Submitting…' : 'Submit ticket'}
           </button>
         </form>
       )}
@@ -438,7 +438,7 @@ export default function SupportPage() {
                     className="w-full bg-zaam-green-600 hover:bg-zaam-green-700 disabled:opacity-60 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
                   >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Send reply
+                    {submitting ? 'Sending…' : 'Send reply'}
                   </button>
                 </form>
               ) : (

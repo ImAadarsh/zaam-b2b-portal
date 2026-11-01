@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Gift, Copy, Check, ArrowRight, Sparkles } from 'lucide-react';
+import { Gift, Copy, Check, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { zaamApi } from '@/lib/api';
 
 export const ReferralBanner: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [referral, setReferral] = useState<any>(null);
+  const [busy, setBusy] = useState<'copy' | 'invite' | null>(null);
   const { showToast } = useNotifications();
 
   useEffect(() => {
@@ -15,12 +16,35 @@ export const ReferralBanner: React.FC = () => {
   }, []);
 
   const copyToClipboard = async () => {
-    if (!referral?.code) return;
-    const link = `${window.location.origin}/login?ref=${encodeURIComponent(referral.code)}`;
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    showToast('Referral link copied', 'success');
-    setTimeout(() => setCopied(false), 3000);
+    if (!referral?.code || busy) return;
+    setBusy('copy');
+    try {
+      const link = `${window.location.origin}/login?ref=${encodeURIComponent(referral.code)}`;
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      showToast('Referral link copied', 'success');
+      setTimeout(() => setCopied(false), 3000);
+    } catch (e: any) {
+      showToast(e.message || 'Could not copy referral link', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const inviteNow = async () => {
+    if (!referral?.code || busy) return;
+    setBusy('invite');
+    try {
+      const link = `${window.location.origin}/login?ref=${encodeURIComponent(referral.code)}`;
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      showToast('Invite link copied — share it with another retailer', 'success');
+      setTimeout(() => setCopied(false), 3000);
+    } catch (e: any) {
+      showToast(e.message || 'Could not prepare invite link', 'error');
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -44,13 +68,22 @@ export const ReferralBanner: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2 pt-2 sm:pt-0">
-          <button onClick={copyToClipboard} className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-semibold backdrop-blur transition-all btn-press text-neutral-200">
-            {copied ? <Check className="w-4 h-4 text-zaam-green-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Link Copied!' : 'Copy Code'}</span>
+          <button
+            onClick={copyToClipboard}
+            disabled={!referral?.code || !!busy}
+            className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-semibold backdrop-blur transition-all btn-press text-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {busy === 'copy' ? <Loader2 className="w-4 h-4 animate-spin" /> : copied ? <Check className="w-4 h-4 text-zaam-green-400" /> : <Copy className="w-4 h-4" />}
+            <span>{busy === 'copy' ? 'Copying…' : copied ? 'Link Copied!' : 'Copy Code'}</span>
           </button>
-          <button onClick={copyToClipboard} className="flex items-center space-x-1.5 bg-zaam-gold-500 hover:bg-zaam-gold-600 text-zaam-dark-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-glow-gold btn-press transition-all">
-            <span>Invite Now</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+          <button
+            onClick={inviteNow}
+            disabled={!referral?.code || !!busy}
+            className="flex items-center space-x-1.5 bg-zaam-gold-500 hover:bg-zaam-gold-600 text-zaam-dark-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-glow-gold btn-press transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {busy === 'invite' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            <span>{busy === 'invite' ? 'Preparing…' : 'Invite Now'}</span>
+            {busy !== 'invite' ? <ArrowRight className="w-3.5 h-3.5" /> : null}
           </button>
         </div>
       </div>
