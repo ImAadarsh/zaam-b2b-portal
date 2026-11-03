@@ -177,7 +177,7 @@ export const zaamApi = {
   },
 
   async createOrder(payload: {
-    lines: { variantId: string; quantity: number }[];
+    lines: { variantId: string; quantity: number; unitPrice?: number }[];
     shippingMethod?: string;
     shippingMethodCode?: string;
     customerNotes?: string;

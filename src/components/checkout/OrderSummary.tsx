@@ -28,7 +28,7 @@ export const OrderSummary: React.FC<Props> = ({
   shippingPrice = 0,
   shippingLabel = 'Delivery'
 }) => {
-  const { cart, totalCases, totalUnits, totalWeightKg, subtotal, vatAmount, totalAmount } = useCart();
+  const { cart, totalCases, totalUnits, totalWeightKg, subtotal, vatAmount, totalAmount, getProductUnitPrice } = useCart();
   const { showToast } = useNotifications();
   const [code, setCode] = useState('');
   const [applying, setApplying] = useState(false);
@@ -94,7 +94,7 @@ export const OrderSummary: React.FC<Props> = ({
               </div>
             </div>
             <div className="text-right flex-shrink-0 ml-2">
-              <span className="font-bold text-neutral-900">£{(item.variant.casePrice * item.quantity).toFixed(2)}</span>
+              <span className="font-bold text-neutral-900">£{(getProductUnitPrice(item.product, item.variant, item.quantity) * item.quantity).toFixed(2)}</span>
             </div>
           </div>
         ))}

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function CheckoutPage() {
-  const { cart, totalAmount, clearCart, stockIssues, fixStockIssues, refreshStock } = useCart();
+  const { cart, totalAmount, clearCart, stockIssues, fixStockIssues, refreshStock, getProductUnitPrice } = useCart();
   const { retailer, availableCredit, refreshProfile, selectedBranchId } = useAuth();
   const { showToast } = useNotifications();
 
@@ -142,7 +142,11 @@ export default function CheckoutPage() {
     try {
       const aff = getAffiliateAttribution();
       const { order } = await zaamApi.createOrder({
-        lines: cart.map((i) => ({ variantId: i.variant.id, quantity: i.quantity })),
+        lines: cart.map((i) => ({
+          variantId: i.variant.id,
+          quantity: i.quantity,
+          unitPrice: getProductUnitPrice(i.product, i.variant, i.quantity)
+        })),
         shippingMethod: deliveryObj?.name,
         shippingMethodCode: deliveryObj?.code || deliveryObj?.id,
         paymentMethod,

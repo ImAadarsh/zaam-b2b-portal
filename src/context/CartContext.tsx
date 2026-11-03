@@ -35,6 +35,7 @@ interface CartContextType {
   subtotal: number;
   vatAmount: number;
   totalAmount: number;
+  getProductUnitPrice: (product: Product, variant: ProductVariant, quantity: number) => number;
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
 }
@@ -103,7 +104,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let effectivePrice = variant.casePrice;
     if (product.tierPricing && product.tierPricing.length > 0) {
       const sortedTiers = [...product.tierPricing].sort((a, b) => b.minCases - a.minCases);
-      const matchedTier = sortedTiers.find(t => quantity >= t.minCases);
+      // Volume tier only applies when quantity qualifies for minCases > 1
+      const matchedTier = sortedTiers.find(t => (t.minCases > 1) && quantity >= t.minCases);
       if (matchedTier) {
         effectivePrice = matchedTier.pricePerCase;
       }
@@ -204,6 +206,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subtotal,
         vatAmount,
         totalAmount,
+        getProductUnitPrice,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
       }}

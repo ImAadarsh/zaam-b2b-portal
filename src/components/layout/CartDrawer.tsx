@@ -31,6 +31,7 @@ export const CartDrawer: React.FC = () => {
     subtotal,
     vatAmount,
     totalAmount,
+    getProductUnitPrice,
     stockIssues,
     fixStockIssues
   } = useCart();
@@ -140,14 +141,19 @@ export const CartDrawer: React.FC = () => {
                     </p>
 
                     <div className="flex items-center justify-between mt-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-zaam-green-700">
-                          £{(item.variant.casePrice * item.quantity).toFixed(2)}
-                        </span>
-                        <span className="text-[10px] text-neutral-400">
-                          (£{item.variant.casePrice.toFixed(2)}/{getSaleUnit(item.variant)})
-                        </span>
-                      </div>
+                      {(() => {
+                        const unitPrice = getProductUnitPrice(item.product, item.variant, item.quantity);
+                        return (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-zaam-green-700">
+                              £{(unitPrice * item.quantity).toFixed(2)}
+                            </span>
+                            <span className="text-[10px] text-neutral-400">
+                              (£{unitPrice.toFixed(2)}/{getSaleUnit(item.variant)})
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Quantity Controls — 44px taps for mobile cashiers */}
                       <div className="flex items-center space-x-1 bg-neutral-100 rounded-xl p-0.5 border border-neutral-200">

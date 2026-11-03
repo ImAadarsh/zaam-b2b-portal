@@ -7,24 +7,54 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { BrandLogo } from '@/components/ui/BrandLogo';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import { Branch } from '@/types';
 
 const branchLabel = (b: Branch) => [b.addressLine1, b.city].filter(Boolean).join(', ');
+
+const canHoverFine = () =>
+  typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 export const AppHeader: React.FC = () => {
   const { totalCases, setIsCartDrawerOpen } = useCart();
   const { retailer, branches, selectedBranch, selectedBranchId, setSelectedBranchId, logout } = useAuth();
   const { unreadCount, showToast } = useNotifications();
   const [branchOpen, setBranchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const branchWrapRef = useRef<HTMLDivElement>(null);
+  const notifWrapRef = useRef<HTMLDivElement>(null);
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHoverClose = () => {
+    if (hoverCloseTimer.current) {
+      clearTimeout(hoverCloseTimer.current);
+      hoverCloseTimer.current = null;
+    }
+  };
+
+  const openNotif = () => {
+    clearHoverClose();
+    setBranchOpen(false);
+    setNotifOpen(true);
+  };
+
+  const closeNotif = () => {
+    clearHoverClose();
+    setNotifOpen(false);
+  };
 
   useEffect(() => {
-    if (!branchOpen) return;
+    if (!branchOpen && !notifOpen) return;
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      if (!branchWrapRef.current?.contains(e.target as Node)) setBranchOpen(false);
+      const target = e.target as Node;
+      if (branchOpen && !branchWrapRef.current?.contains(target)) setBranchOpen(false);
+      if (notifOpen && !notifWrapRef.current?.contains(target)) setNotifOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setBranchOpen(false);
+      if (e.key === 'Escape') {
+        setBranchOpen(false);
+        setNotifOpen(false);
+      }
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -34,7 +64,9 @@ export const AppHeader: React.FC = () => {
       document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [branchOpen]);
+  }, [branchOpen, notifOpen]);
+
+  useEffect(() => () => clearHoverClose(), []);
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-soft-sm">
@@ -61,7 +93,10 @@ export const AppHeader: React.FC = () => {
                 aria-haspopup="listbox"
                 aria-expanded={branchOpen}
                 aria-label="Switch delivery branch"
-                onClick={() => setBranchOpen((o) => !o)}
+                onClick={() => {
+                  setNotifOpen(false);
+                  setBranchOpen((o) => !o);
+                }}
                 className="flex items-center space-x-2 bg-neutral-100/90 hover:bg-neutral-200/70 transition-colors px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 cursor-pointer border border-neutral-200 max-w-[min(100%,280px)]"
               >
                 <Building2 className="w-3.5 h-3.5 text-zaam-green-600 shrink-0" aria-hidden />
@@ -149,19 +184,53 @@ export const AppHeader: React.FC = () => {
               <LogOut className="w-5 h-5" aria-hidden />
             </button>
 
-            <Link
-              href="/#notifications"
-              className="relative p-2 text-neutral-600 hover:text-zaam-green-600 hover:bg-neutral-100 rounded-full transition-colors"
-              title="Notifications"
-              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            <div
+              className="relative"
+              ref={notifWrapRef}
+              onMouseEnter={() => {
+                if (!canHoverFine()) return;
+                openNotif();
+              }}
+              onMouseLeave={() => {
+                if (!canHoverFine()) return;
+                clearHoverClose();
+                hoverCloseTimer.current = setTimeout(() => setNotifOpen(false), 180);
+              }}
             >
-              <Bell className="w-5 h-5" aria-hidden />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {unreadCount}
-                </span>
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={notifOpen}
+                aria-controls="header-notifications-panel"
+                title="Notifications"
+                aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+                onClick={() => {
+                  if (notifOpen) closeNotif();
+                  else openNotif();
+                }}
+                className="relative p-2 text-neutral-600 hover:text-zaam-green-600 hover:bg-neutral-100 rounded-full transition-colors"
+              >
+                <Bell className="w-5 h-5" aria-hidden />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-4 h-4 px-0.5 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div
+                  id="header-notifications-panel"
+                  role="dialog"
+                  aria-label="Wholesale alerts and promos"
+                  className="absolute right-0 pt-1 w-[min(22rem,calc(100vw-1.25rem))] z-50"
+                >
+                  <div className="rounded-xl shadow-soft-lg border border-neutral-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                    <NotificationPanel compact onNavigate={closeNotif} />
+                  </div>
+                </div>
               )}
-            </Link>
+            </div>
 
             <button
               onClick={() => setIsCartDrawerOpen(true)}
@@ -182,3 +251,4 @@ export const AppHeader: React.FC = () => {
     </header>
   );
 };
+
